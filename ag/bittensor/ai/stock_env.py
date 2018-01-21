@@ -16,7 +16,7 @@ __maintainer__ = "https://github.com/HubFire"
 __email__ = "https://github.com/HubFire"
 __status__ = "Beta"
 
-class StockEnv():
+class StockEnv(object):
 	def __init__(self, data):
 		self.action_space = ['b','s','n']
 		self.n_actions = len(self.action_space)

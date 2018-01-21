@@ -2,3 +2,13 @@
 
 # hide your personal keys when sharing your git.
 config/access_codes.yaml
+
+
+# nasty pyc files
+*.pyc
+*/*.pyc
+*/*/*.pyc
+
+__pycache__
+*/__pycache__
+*/*/__pycache__

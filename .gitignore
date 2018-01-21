@@ -1,0 +1,4 @@
+### BITTENSOR IGNORE FILES ###
+
+# hide your personal keys when sharing your git.
+config/access_codes.yaml

@@ -1,0 +1,75 @@
+########################################################
+#    KinetechConcepts.com                              #
+#    Master Keys List!!                                #
+# ==================================================== #
+# Application: Python Key: value for options class.    #
+#   - options.key = value                              #
+########################################################
+
+#=====| LAST UPDATED: Dec. 7, 17 |======#
+
+#//////| APP |\\\\\\#
+verbose: False
+user_email: 'dummy@alphagriffin.com'
+notify_by_mail: False
+
+#//////| PRINTER |\\\\\\#
+border: '|~|'
+filler: ' '
+spacer: ' |#|'
+blocker: '    '
+
+#//////| SpreadSheets |\\\\\\#
+google_api: ''
+google_client_id: ''
+google_client_secret: ''
+
+#//////| EXCHANGES |\\\\\\#
+# Binance.com
+binance_api: ''
+binance_secret: ''
+
+# Bitmex.com
+bitmex_api: ''
+bitmex_secret: ''
+
+# Hitbtc.com
+hitbtc_api: ''
+hitbtc_secret: ''
+
+# livecoin.com
+livecoin_api_url: 'https://api.livecoin.net'
+livecoin_api: ''
+livecoin_secret: ''
+
+# Poloniex.com
+poloniex_api: ''
+poloniex_secret: ''
+
+# Cryptopia.com
+cryptopia_api: ''
+cryptopia_secret: ''
+
+# C-cex.com
+ccex_api: ''
+ccex_secret: ''
+
+# Bittrex.com
+bittrex_2fac: ''
+bittrex_api: ''
+bittrex_secret: ''
+
+
+#//////| MINING POOLS |\\\\\\#
+# Blockfactory.com
+blockfactory_api: ''
+
+# suprnova.cc
+suprnovaETN_url: 'https://etn.sup.rnova.cc/index.php?page=api&action=getuserstatus&api_key='
+suprnovaETN_api: ''
+suprnovaETN_id: ''
+
+# NICEHASH.com
+nicehash_api_id: ''
+nicehash_api: ''
+nicehash_btc_addr: ''

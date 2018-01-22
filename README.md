@@ -1,7 +1,9 @@
 # AlphaGriffin BitTensor
 
 ![AlphaGriffin Logo](/images/logo.png)
-Format: ![AlphaGriffin](alphagriffin.com)
+<p align="center">
+  <img />
+</p>
 
 Tensorflow vs. Bitcoin. Currently in development by 2 guys. if you would like
 to help out with the project please donate Litecoin to the following address.

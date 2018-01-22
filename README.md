@@ -1,5 +1,8 @@
 # AlphaGriffin BitTensor
 
+![AlphaGriffin Logo](/images/logo.png)
+Format: ![AlphaGriffin](alphagriffin.com)
+
 Tensorflow vs. Bitcoin. Currently in development by 2 guys. if you would like
 to help out with the project please donate Litecoin to the following address.
 Litecoin is our prefered tranactional coin for its low fees and segwit2x.

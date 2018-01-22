@@ -9,7 +9,8 @@ import tensorflow as tf
 import pandas as pd
 from collections import deque
 import numpy as np
-from stock_env import StockEnv
+#from stock_env import StockEnv
+from ag.bittensor.ai.stock_env import StockEnv
 import random
 
 __author__ = "@HubFire"

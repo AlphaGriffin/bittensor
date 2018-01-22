@@ -21,6 +21,9 @@ import os, sys, time, datetime, collections
 import ccxt
 
 # Tensorflow
+import ag.bittensor.ai.AI as autoI
+
+# REPLACING THE OLD STUFFS
 #from ag.bittensor.ai.stock_env import StockEnv
 #from ag.bittensor.ai.DQN_trade import DQN_Trade as bot
 
@@ -48,13 +51,17 @@ class Bittensor(object):
 
         # build objects
         self.plotter = plotter.Plot(options)
+        log.debug('Loaded Plotter Program.')
         self.sheets = sheets.gHooks(options)
+        log.debug('Loaded gHooks Program.')
         self.P = printer.Printer(options)
-        #self.agent = bot()
+        log.debug('Loaded Printer Program.')
+        self.agent = autoI.DQN_Trader(options)
+        log.debug('Loaded AI Program.')
 
         # CONSOLE LOGGING
         self.P('Setup Complete')
-        log.debug('setup compete')
+        log.debug('setup complete')
 
     def main(self):
         """sanity check."""
@@ -65,21 +72,29 @@ class Bittensor(object):
 
 def main():
     """Launcher for the app."""
-    config = options.Options('config/dummy_codes.yaml')
+    if os.path.exists('config/access_codes.yaml'):
+        config = options.Options('config/access_codes.yaml')
+    else:
+        print('\n#| AlphaGriffin - BitTensor() |#')
+        print(": To begin copy the dummy_codes.yaml file,")
+        print(": the one thats in the config folder in this repo.")
+        print(': to access_codes.yaml.\n')
+        print(": After that, restart this app.")
+        exit('AlphaGriffin | 2018')
     app = Bittensor(config)
     if app.main():
         return True
     return False
 
+
 if __name__ == '__main__':
     try:
         import ag.bittensor.utils.options as options
-        # os.system("mode con cols=80 lines=75")
-        # os.system("clear")
         if main():
             print("AlphaGriffin  |  2018")
         else:
             print("Controlled Errors. Good day.")
     except Exception as e:
         print("and thats okay too.")
+        log.error(e)
         sys.exit(e)

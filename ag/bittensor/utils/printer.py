@@ -16,10 +16,10 @@ __author__ = "Eric Petersen @Ruckusist"
 __copyright__ = "Copyright 2017, The Alpha Griffin Project"
 __credits__ = ["Eric Petersen", "Shawn Wilson", "@alphagriffin"]
 __license__ = "***"
-__version__ = "0.0.4"
+__version__ = "0.1.0"
 __maintainer__ = "Eric Petersen"
 __email__ = "ruckusist@alphagriffin.com"
-__status__ = "Beta"
+__status__ = "Alpha"
 
 
 class Printer(object):
@@ -33,18 +33,23 @@ class Printer(object):
             self.options.filler = ' '
             self.options.spacer = ' |#|'
             self.options.blocker = '    '
+        self.working_res = False
         try:
             self.res_x, self.res_y = self._get_terminal_size_windows() if not None else self.getTerminalSize()
+            self.working_res = True
         except Exception as exp:
             # cant know the screen size, might be visual studio or Jupyter
             # use backup printer that doesnt need screen size
-
+            # not working in powershell either.
             print("Failing to get screen size!")
             pass
 
     def __call__(self, data=None):
         """Call this Class without any functions."""
-        self.printer(data)
+        if self.working_res:
+            self.printer(data)
+        else:
+            self.no_size_printer(data)
         return True
 
     def __str__(self):

@@ -89,7 +89,6 @@ def main():
 
 if __name__ == '__main__':
     try:
-        import ag.bittensor.utils.options as options
         if main():
             print("AlphaGriffin  |  2018")
         else:

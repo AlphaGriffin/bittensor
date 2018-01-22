@@ -2,7 +2,7 @@
 
 # hide your personal keys when sharing your git.
 config/access_codes.yaml
-
+config/client_secret.json
 
 # nasty pyc files
 *.pyc

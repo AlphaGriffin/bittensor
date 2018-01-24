@@ -52,9 +52,11 @@ class StockEnv(object):
 		else:
 			done = False
 		s_ = self.data[self.step]
-		new_pro = s_[0]*self.hold+self.cash
-		old_pro = oldPrice*hold+cash
-		reward = new_pro-old_pro
+
+		new_pro = s_[0] * self.hold + self.cash
+		old_pro = oldPrice * hold+cash
+		reward = new_pro - old_pro
+
 		return s_, reward, done
 
 # df = pd.read_csv('./data.csv')

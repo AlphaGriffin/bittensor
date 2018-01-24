@@ -1,5 +1,7 @@
 ### BITTENSOR IGNORE FILES ###
 
+.idea
+
 # hide your personal keys when sharing your git.
 config/access_codes.yaml
 config/client_secret.json
@@ -12,3 +14,9 @@ config/client_secret.json
 __pycache__
 */__pycache__
 */*/__pycache__
+
+
+### REMOVE ALL THE GENERATED SAVE DATA
+saved_notebooks/*
+html/*
+data/*

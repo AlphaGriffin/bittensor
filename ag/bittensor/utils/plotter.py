@@ -9,7 +9,7 @@ import os, sys, time, datetime, collections
 # Graphing Stuffs
 from bokeh.io import push_notebook, show, output_notebook
 from bokeh.layouts import row, layout
-from bokeh.plotting import figure
+from bokeh.plotting import figure, output_file
 from bokeh.models import ColumnDataSource, HoverTool, LinearAxis, Range1d, Toggle, BoxAnnotation, CustomJS
 from bokeh.sampledata.autompg import autompg_clean as testset # sample data for testing
 from bokeh.transform import factor_cmap
@@ -30,7 +30,7 @@ class Plot(object):
         self.options = options
 
     @staticmethod
-    def Plot_me(dataframe):
+    def Plot_me(dataframe, to_file=False):
         """
         Add up all the bokeh tutorials into one nice looking web page.
         """
@@ -47,7 +47,7 @@ class Plot(object):
                    # Axis Types
                    x_axis_type = "datetime",
                    #y_axis_type = "log",
-                   # toolbar_location = None,
+                   toolbar_location = 'below',
                    tools = TOOLS
                   )
 
@@ -58,17 +58,25 @@ class Plot(object):
         p.xaxis.axis_label = "Coins Grouped By Exchange"
         p.xaxis.major_label_orientation = 1.2
 
-        p.add_tools(HoverTool(tooltips=[
-            ("Close", "@close"),
-            # ("Time", "@time_str"),
-            ("High", "@high"),
-            ("Low", "@low"),
-            ("Volume", "@vol"),
-
-        ]))
+        p.add_tools(
+            HoverTool(
+                tooltips=[
+                    ("Close", "@close{%.8f}"),
+                    ("Time", "@time_str{%F}"),
+                    ("Volume", "@vol{0.00 a}"),
+                ],
+                formatters={
+                    "Time": 'datetime',
+                    "Close": 'printf'
+                },
+                mode='vline'
+            )
+        )
 
         # plots
-        price_chart = p.vbar(x='time', top='close', color="navy", alpha=0.4, width=.2, source=source)
+        price_chart = p.vbar(
+            x='time', top='close', color="navy", alpha=0.4, width=.2, source=source, legend='Price USD'
+        )
         #p.square(x='time', y='close', color="firebrick", alpha=0.4, size=4, source=source)
         #p.line(x='time', y='close', line_width=2, color='navy', alpha=.8, source=source)
 
@@ -80,7 +88,9 @@ class Plot(object):
         p.add_layout(LinearAxis(y_range_name="foo"), 'left')
 
         # Volume plot
-        vol_chart = p.line(x='time', y='vol', line_width=2, color='red', alpha=.8, source=source, y_range_name="foo")
+        vol_chart = p.line(
+            x='time', y='vol', line_width=2, color='red', alpha=.8, source=source, y_range_name="foo", legend='Volume'
+        )
 
         # Buttons for Charts
         hide_chart_code = """object.visible = toggle.active"""
@@ -93,10 +103,13 @@ class Plot(object):
         callback_2.args = {'toggle': button_2, 'object': vol_chart}
 
         # show and or save to html
-        if False:
-            output_file("MyCharts.html")
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        filename = "gf_{}_{}_{}.html".format(df.exchange, df.pair, datetime.datetime.now().strftime('%m_%d'))
+
+        if to_file:
+            output_file(os.path.join(os.getcwd(), 'html', 'graphs', filename))
         show(layout(
                 [p], [button_1, button_2]
                 # [button for button in buttons]
                 ))
-        return True
+        return filename

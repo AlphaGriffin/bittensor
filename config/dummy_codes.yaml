@@ -25,6 +25,8 @@ google_client_id: ''
 google_client_secret: ''
 
 #//////| EXCHANGES |\\\\\\#
+use_exchanges: 'poloniex,bitmex'
+
 # Binance.com
 binance_api: ''
 binance_secret: ''

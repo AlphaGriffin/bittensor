@@ -23,14 +23,10 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 import random
-#from stock_env import StockEnv
-#from ag.bittensor.ai.stock_env import StockEnv
+# from stock_env import StockEnv
+# from ag.bittensor.ai.stock_env import StockEnv
 
-# Dataset
-import ag.bittensor.ai.dataprep as dataprep
 
-# GameEngine // need access to engine for reward data
-import ag.bittensor.game.engine as engine
 
 
 class DQN_Trader(object):
@@ -40,5 +36,4 @@ class DQN_Trader(object):
 
     def __init__(self, options):
         self.options = options
-        self.dataHandler = dataprep.DataHandler()
-        self.gameengine = engine.GameEngine(options)
+

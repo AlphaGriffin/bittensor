@@ -41,7 +41,7 @@ class Printer(object):
             # cant know the screen size, might be visual studio or Jupyter
             # use backup printer that doesnt need screen size
             # not working in powershell either.
-            print("Failing to get screen size!")
+            # print("Failing to get screen size!")
             pass
 
     def __call__(self, data=None):

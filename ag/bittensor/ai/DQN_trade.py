@@ -28,6 +28,8 @@ GAMMA = 0.9 #discount factor
 EPSILON = 0.9
 REPLAY_SIZE = 500
 BATCH_SIZE = 32
+MAX_ELEMENTS = 20000
+NUM_GPUS = 4
 
 class DQN_Trade():
 	def __init__(self):
@@ -71,6 +73,41 @@ class DQN_Trade():
 		Q_action = tf.reduce_sum(tf.multiply(self.Q_value, self.action_input),reduction_indices=1)
 		self.cost = tf.reduce_mean(tf.square(self.y_input-Q_action))
 		self.optimizer = tf.train.AdamOptimizer(0.0001).minimize(self.cost)
+
+	def new_buildNetwork(self):
+		# first assign the syncronizing factors to the CPU
+		with tf.Graph().as_default(), tf.device('/cpu:0'):
+			global_step = tf.get_variable(
+				'global_step', [],
+				initializer=tf.constant_initializer(0), trainable=False)
+
+			# Calculate the learning rate schedule.
+			num_batches_per_epoch = (MAX_ELEMENTS /
+									 BATCH_SIZE)
+			decay_steps = int(num_batches_per_epoch * 2)
+
+			# Decay the learning rate exponentially based on the number of steps.
+			lr = tf.train.exponential_decay(.095,
+											global_step,
+											decay_steps,
+											5,
+											staircase=True)
+
+			# Create an optimizer that performs gradient descent.
+			opt = tf.train.AdamOptimizer(lr)
+
+			# input layer
+			self.state_input = tf.placeholder('float', [None, 40])
+			# hidden layer
+			layer_1 = tf.nn.relu(tf.matmul(self.state_input, W1) + b1)
+			# Q value layer
+			self.Q_value = tf.matmul(layer_1, W2) + b2
+
+
+
+
+
+		return True
 
 	def train_net(self):
 		# get random  sample from replay buffer
@@ -151,7 +188,7 @@ class DQN_Trade():
 
 
 def main(train = False):
-	data = np.loadtxt('./data.csv',delimiter = ',',skiprows=1)
+	data = np.loadtxt('../data/datasets/ss/data.csv',delimiter = ',',skiprows=1)
 	data = data[230:-1]  #delete the first day data
 	angent = DQN_Trade()
 

@@ -29,7 +29,7 @@ import asyncio
 import ccxt.async as cryptosync
 
 # Tensorflow
-# from ag.bittensor.ai.AI import Q_Trader as bot
+from ag.bittensor.ai.AI import Q_Trader as bot
 
 # Dataset
 import ag.bittensor.ai.dataprep as dataprep
@@ -82,7 +82,7 @@ class BitTensorPlay(object):
         log.debug('Loaded Data Handler Program')
         self.gameEngine = engine.GameEngine(options)
         log.debug('Loaded Game Engine.')
-        self.robot = bot()
+        self.robot = bot(options)
         log.debug('Loaded Agent')
 
         # CONSOLE LOGGING
@@ -108,7 +108,7 @@ class BitTensorPlay(object):
         p_start = timer()
         df = self.dataHandler.get_playback_candles(exchange, symbol)
         df = df.mircoset()
-        action = self.Agent.egreedy_action(df)
+        action = self.robot.egreedy_action(df)
         if action == 0:
             print('BUY!')
         elif action == 1:

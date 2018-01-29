@@ -17,6 +17,7 @@ __status__ = "Beta"
 #////////////////// | Imports | \\\\\\\\\\\\\\\#
 # generic
 import os, sys, time, datetime, collections
+import threading
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '5'
 from timeit import default_timer as timer
 runtime = timer()
@@ -24,9 +25,11 @@ from tqdm import tqdm, trange
 
 # crypto
 import ccxt
+import asyncio
+import ccxt.async as cryptosync
 
 # Tensorflow
-from ag.bittensor.ai.AI import Q_Trader as bot
+# from ag.bittensor.ai.AI import Q_Trader as bot
 
 # Dataset
 import ag.bittensor.ai.dataprep as dataprep
@@ -47,6 +50,22 @@ import ag.logging as log
 log.set(log.WARN)
 
 
+def setInterval(interval):
+    def decorator(function):
+        def wrapper(*args, **kwargs):
+            stopped = threading.Event()
+
+            def loop(): # executed in another thread
+                while not stopped.wait(interval): # until stopped
+                    function(*args, **kwargs)
+
+            t = threading.Thread(target=loop)
+            t.daemon = True # stop if the program exits
+            t.start()
+            return stopped
+        return wrapper
+    return decorator
+
 class BitTensorPlay(object):
     def __init__(self, options):
         self.options = options
@@ -63,6 +82,8 @@ class BitTensorPlay(object):
         log.debug('Loaded Data Handler Program')
         self.gameEngine = engine.GameEngine(options)
         log.debug('Loaded Game Engine.')
+        self.robot = bot()
+        log.debug('Loaded Agent')
 
         # CONSOLE LOGGING
         self.P('Setup Complete')
@@ -78,8 +99,28 @@ class BitTensorPlay(object):
             self.P("{}".format(id))
         pass
 
+    async def get_ticker(self, exchange='poloniex', symbol='LTC/BTC'):
+        this_exchange = eval('ccxt.{}()'.format(exchange))
+        return await this_exchange.fetch_ticker(symbol)
+
+    # @setInterval(300)
+    def predict(self, exchange='poloniex', symbol='LTC/BTC'):
+        p_start = timer()
+        df = self.dataHandler.get_playback_candles(exchange, symbol)
+        df = df.mircoset()
+        action = self.Agent.egreedy_action(df)
+        if action == 0:
+            print('BUY!')
+        elif action == 1:
+            print('SELL!')
+        else:
+            print('DO NOTHING.')
+        print('this action took {} secs to execute.'.format(timer()-p_start))
+
     def main(self):
         print('This is working!')
+        self.predict()
+        print('is this thing still on?')
         return True
 
 

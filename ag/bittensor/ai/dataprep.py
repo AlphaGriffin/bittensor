@@ -16,7 +16,7 @@ __status__ = "Beta"
 #////////////////// | Imports | \\\\\\\\\\\\\\\#
 # generic
 import os, sys, time, datetime, collections
-
+from decimal import Decimal as D
 import pandas as pd
 import numpy as np
 
@@ -117,6 +117,19 @@ class DataStruct(pd.DataFrame):
                 working_df = working_df.append(new_df)
         return working_df  # .as_matrix()
 
+    def mircoset(self):
+        """
+        :return: A numpy array of the dataframe.
+        """
+        df = self
+        df = df[-20:]
+        series = []
+        for x, y in zip(df['close'], df['vol']):
+            series.append(x)
+            series.append(y)
+        return series
+
+
     def myLen(self):
         df = self
         return len(df)
@@ -173,4 +186,30 @@ class DataHandler(object):
         df.pair = '{}_{}'.format(coin1, coin2)
         return df
 
+    def get_playback_candles(self, exchange='poloniex', pair='BTC/USDT'):
+        """
+        :param exchange: this should be known in advance with api information in the config.
+        :param pair: A known trading pair, try seaching for this first and insert programatically.
+        :return: A custom pandas dataframe with a fix_time and superset functions added.
+        """
+        # add setup info for ccxt
+        config = {'rateLimit': 3000,
+                  'enableRateLimit': True,
+                  # 'verbose': True,
+                  }
+        # this is a setup with no login.
+        this_exchange = eval('ccxt.{}({})'.format(exchange, config))
+        time.sleep(this_exchange.rateLimit / 1000)
 
+        # this is the webcall for candlestick data
+        OHLCVS = this_exchange.fetch_ohlcv(
+            pair, '5m', (int(time.time())-7200)*1000
+        )
+
+        # put that in the custom dataframe
+        df = DataStruct(OHLCVS,
+                        columns=['time', 'open', 'high', 'low', 'close', 'vol'])
+        df.exchange = exchange
+        coin1, coin2 = pair.split('/')
+        df.pair = '{}_{}'.format(coin1, coin2)
+        return df

@@ -102,11 +102,6 @@ class DQN_Trade():
 			layer_1 = tf.nn.relu(tf.matmul(self.state_input, W1) + b1)
 			# Q value layer
 			self.Q_value = tf.matmul(layer_1, W2) + b2
-
-
-
-
-
 		return True
 
 	def train_net(self):

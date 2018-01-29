@@ -16,14 +16,16 @@ __status__ = "Beta"
 #////////////////// | Imports | \\\\\\\\\\\\\\\#
 # generic
 import os, sys, time, datetime, collections
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '5'
 from timeit import default_timer as timer
+runtime = timer()
 from tqdm import tqdm, trange
 
 # crypto
 import ccxt
 
 # Tensorflow
-import ag.bittensor.ai.AI as autoI
+from ag.bittensor.ai.AI import Q_Trader as bot
 
 # Dataset
 import ag.bittensor.ai.dataprep as dataprep
@@ -35,7 +37,7 @@ import ag.bittensor.game.engine as engine
 
 # REPLACING THE OLD STUFFS
 from ag.bittensor.ai.stock_env import StockEnv
-from ag.bittensor.ai.DQN_trade import DQN_Trade as bot
+# from ag.bittensor.ai.DQN_trade import DQN_Trade as bot
 
 # Utilities
 import ag.bittensor.utils.options as options
@@ -59,16 +61,15 @@ class Bittensor(object):
         """Use the options for a proper setup."""
         self.options = options
         self.options.save_file = True
-
         # build objects
         self.plotter = plotter.Plot(options)
         log.debug('Loaded Plotter Program.')
         # self.sheets = sheets.gHooks(options)
-        log.debug('Loaded gHooks Program.')
+        # log.debug('Loaded gHooks Program.')
         self.P = printer.Printer(options)
         log.debug('Loaded Printer Program.')
-        self.agent = autoI.DQN_Trader(options)
-        log.debug('Loaded AI Program.')
+        # self.agent = autoI.Q_Trader(options)
+        # log.debug('Loaded AI Program.')
         self.dataHandler = dataprep.DataHandler(options)
         log.debug('Loaded Data Handler Program')
         self.gameEngine = engine.GameEngine(options)
@@ -90,16 +91,22 @@ class Bittensor(object):
     def main(self):
         exchange = 'poloniex'
         pair = 'LTC/BTC'
-        runtime = timer()
+
         ss = self.get_dataset(exchange, pair)
         self.P('Total Runtime to collect and process all data for 1 pair is {:.1f} mins'.format(float(timer()-runtime)/60))
         # start AI engine.
-        Agent = bot()
+        Agent = bot(self.options)
+        Agent.running = True
         data = ss
         if True:
             self.P('Gathering options for training session.')
-            training_cycles = trange(10)
-            iters = trange(int(len(data) / 240))
+
+            if False:
+                training_cycles = trange(2)
+                iters = trange(2)
+            else:
+                training_cycles = trange(10)
+                iters = trange(int(len(data) / 240))
 
 
             for i in training_cycles:
@@ -127,17 +134,22 @@ class Bittensor(object):
                         # print ("Action: {} | 0 = buy, 1 = sell".format(action))
                         # print ("Reward: {:.4f}".format(reward))
                         # print ("Current Price set: {}".format(s_))
-                        Agent.precive(s, action, reward, s_, done)
+                        Agent.train(s, action, reward, s_, done)
                         # print ("Prediction made...")
                         # print("Total Cash on hand?: {}".format(env.cash))
                         s = s_
                         if done:
                             # print("done")
                             tqdm.write("Total Cash on hand?: {}".format(env.cash))
+                            tqdm.write("Total Global Steps: {}".format(Agent.stats.g_step))
+                            tqdm.write("Total Loss of Model: {}".format(Agent.stats.cost))
                             break
                     # break
                 # break
-                Agent.save_model(step=i)
+                Agent.save_or_load()
+                tqdm.write('Saved @ Global Step: {}, Total Loss: {}'.format(
+                    Agent.stats.g_step, Agent.stats.cost
+                ))
         # finish stats
         self.P('Total Runtime is {:.1f} mins'.format(float(timer()-runtime)/60))
         return True

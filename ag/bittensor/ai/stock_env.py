@@ -39,10 +39,10 @@ class StockEnv(object):
 		oldPrice =s[0]
 
 		if action == 0: # buy
-			self.hold+=1
+			self.hold+= 1
 			self.cash-= oldPrice
-		elif action ==1: #sell
-			self.hold -=1
+		elif action == 1: #sell
+			self.hold -= 1
 			self.cash += oldPrice
 		else:
 			pass  # nothing

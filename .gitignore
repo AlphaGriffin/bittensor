@@ -20,3 +20,6 @@ __pycache__
 saved_notebooks/*
 html/*
 data/*
+
+### REMOVE ALL THE GENERATED SAVE DATA
+*.swp

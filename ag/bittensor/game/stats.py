@@ -25,7 +25,7 @@ from decimal import Decimal as D
 class Stats(object):
     """
     A mechinizm that holds the games variables, positions, data,
-    can parse the options for limitations, holds all golbal booleans.
+    can parse the options for limitations, holds all global booleans.
     """
 
     def __init__(self, options):

@@ -71,7 +71,7 @@ class Bittensor(object):
         log.debug('Loaded AI Program.')
         self.dataHandler = dataprep.DataHandler(options)
         log.debug('Loaded Data Handler Program')
-        self.gameengine = engine.GameEngine(options)
+        self.gameEngine = engine.GameEngine(options)
         log.debug('Loaded Game Engine.')
 
         # CONSOLE LOGGING
@@ -156,7 +156,7 @@ class Bittensor(object):
                 ss = pd.read_csv(os.path.join(dir_path, 'data', 'datasets', ss_filename))
                 self.P('Found {} elements per line'.format(len(ss.loc[0])))
             else:
-                self.P('Fetching new Pricedata... This could take up to 10 mins')
+                self.P('Fetching new Pricedata... This could take up to 21 mins per coin')
                 df = self.dataHandler.get_candles(exchange, pair)
                 # trunkating df size!!!!
                 # df = df[:500]

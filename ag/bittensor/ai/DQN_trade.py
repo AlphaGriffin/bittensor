@@ -194,7 +194,7 @@ def main(train = False):
 
 	for i in range(0,10):
 		iters =len(data)/240
-		for iter_step in range(0,iters):
+		for iter_step in range(0, iters):
 			#print iter_step
 			iter_data =data[iter_step*240:iter_step*240+240]
 			env =StockEnv(iter_data)

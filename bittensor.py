@@ -40,7 +40,7 @@ from ag.bittensor.ai.DQN_trade import DQN_Trade as bot
 # Utilities
 import ag.bittensor.utils.options as options
 import ag.bittensor.utils.plotter as plotter
-import ag.bittensor.utils.sheets as sheets
+# import ag.bittensor.utils.sheets as sheets
 import ag.bittensor.utils.printer as printer
 import ag.logging as log
 
@@ -63,7 +63,7 @@ class Bittensor(object):
         # build objects
         self.plotter = plotter.Plot(options)
         log.debug('Loaded Plotter Program.')
-        self.sheets = sheets.gHooks(options)
+        # self.sheets = sheets.gHooks(options)
         log.debug('Loaded gHooks Program.')
         self.P = printer.Printer(options)
         log.debug('Loaded Printer Program.')
@@ -183,7 +183,7 @@ def main():
     if os.path.exists('config/access_codes.yaml'):
         config = options.Options('config/access_codes.yaml')
     else:
-        print('\n#| AlphaGriffin - BitTensor() |#')
+        print('\n#| AlphaGriffin - BitTensor |#')
         print(": To begin copy the dummy_codes.yaml file,")
         print(": the one thats in the config folder in this repo.")
         print(': to access_codes.yaml.\n')

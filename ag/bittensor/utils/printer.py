@@ -36,7 +36,7 @@ class Printer(object):
         self.working_res = False
         try:
             self.res_x, self.res_y = self._get_terminal_size_windows() if not None else self.getTerminalSize()
-            # self.working_res = True
+            self.working_res = True
         except Exception as exp:
             # cant know the screen size, might be visual studio or Jupyter
             # use backup printer that doesnt need screen size

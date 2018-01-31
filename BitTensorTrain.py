@@ -112,7 +112,7 @@ class Bittensor(object):
             for i in training_cycles:
                 tqdm.write("Round: {}".format(i))
                 for iter_step in iters:
-                    tqdm.write("Iter step {}".format(iter_step))
+                    # tqdm.write("Iter step {}".format(iter_step))
                     iter_data = data[
                                 iter_step * 240: iter_step * 240 + 240
                                 ]
@@ -140,7 +140,7 @@ class Bittensor(object):
                         s = s_
                         if done:
                             # print("done")
-                            tqdm.write("Total Cash on hand?: {}".format(env.cash))
+                            tqdm.write("Total Cash on hand?: {:.8f}".format(env.cash))
                             tqdm.write("Total Global Steps: {}".format(Agent.stats.g_step))
                             tqdm.write("Total Loss of Model: {}".format(Agent.stats.cost))
                             break

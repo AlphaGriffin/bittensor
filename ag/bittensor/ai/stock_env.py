@@ -23,7 +23,11 @@ class StockEnv(object):
 		self.data = data
 		self.step = 0
 		self.hold = 0
-		self.cash = 0
+		self.cash = 1
+		self.last_buy_price = 0
+		self.has_bought = False
+		self.winning_trades = 0
+		self.losing_trades = 0
 
 	def reset(self):
 		data = self.data[self.step]
@@ -36,27 +40,42 @@ class StockEnv(object):
 		hold = self.hold
 		self.step +=1
 		s = self.data[self.step-1]
-		oldPrice =s[0]
+		current_price =s[0]
+		reward = 0
 
 		if action == 0: # buy
-			self.hold+= 1
-			self.cash-= oldPrice
+			if not self.has_bought:
+				self.hold += 1
+				self.cash -= current_price
+				self.last_buy_price = current_price
+				self.has_bought = True
 		elif action == 1: #sell
-			self.hold -= 1
-			self.cash += oldPrice
+			if self.has_bought:
+				self.has_bought = False
+				self.last_buy_price = 0
+				self.hold -= 1
+				self.cash += current_price
+				if current_price > self.last_buy_price:
+					self.winning_trades += 1
+					reward = 1
+				else:
+					self.losing_trades += 1
+					reward = -1
 		else:
-			pass  # nothing
+			reward = .1
+			# pass  # nothing
 
 		if self.step ==239:
 			done = True
 		else:
 			done = False
 		s_ = self.data[self.step]
-
+		"""
+		new_price = s_[0]
 		new_pro = s_[0] * self.hold + self.cash
-		old_pro = oldPrice * hold+cash
+		old_pro = current_price * hold+cash
 		reward = new_pro - old_pro
-
+		"""
 		return s_, reward, done
 
 # df = pd.read_csv('./data.csv')

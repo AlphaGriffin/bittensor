@@ -78,35 +78,41 @@ class Q_Trader(object):
                                         0.87,
                                         staircase=True,
                                         name="Learn_decay")
+
+        # input layer
+        self.state_input = tf.placeholder('float', [None, 40])
+
         # 2018 way to init some fucking w and b
         sigma = 1
         weight_initializer = tf.variance_scaling_initializer(mode="fan_avg", distribution="uniform", scale=sigma)
         bias_initializer = tf.zeros_initializer()
 
-        # TODO: make this iteritive
-        # TODO: make the input and output dimensions fit the dataset automatic
-        W0 = tf.Variable(weight_initializer([40, 1024]))
-        B0 = tf.Variable(bias_initializer([1024]))
-        W1 = tf.Variable(weight_initializer([1024, 512]))
-        B1 = tf.Variable(bias_initializer([512]))
-        W2 = tf.Variable(weight_initializer([512, 256]))
-        B2 = tf.Variable(bias_initializer([256]))
-        W3 = tf.Variable(weight_initializer([256, 128]))
-        B3 = tf.Variable(bias_initializer([128]))
-        W4 = tf.Variable(weight_initializer([128, 3]))
-        B4 = tf.Variable(bias_initializer([3]))
+        c = []
+        for i in range(4):
+            with tf.device('/gpu:{}'.format(i)):
+                # TODO: make this iteritive
+                # TODO: make the input and output dimensions fit the dataset automatic
+                W0 = tf.Variable(weight_initializer([40, 1024]))
+                B0 = tf.Variable(bias_initializer([1024]))
+                W1 = tf.Variable(weight_initializer([1024, 512]))
+                B1 = tf.Variable(bias_initializer([512]))
+                W2 = tf.Variable(weight_initializer([512, 256]))
+                B2 = tf.Variable(bias_initializer([256]))
+                W3 = tf.Variable(weight_initializer([256, 128]))
+                B3 = tf.Variable(bias_initializer([128]))
+                W4 = tf.Variable(weight_initializer([128, 3]))
+                B4 = tf.Variable(bias_initializer([3]))
 
-        # input layer
-        self.state_input = tf.placeholder('float', [None, 40])
+                # Hidden layer
+                hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input, W0), B0))
+                hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
+                hidden_3 = tf.nn.relu(tf.add(tf.matmul(hidden_2, W2), B2))
+                hidden_4 = tf.nn.relu(tf.add(tf.matmul(hidden_3, W3), B3))
 
-        # Hidden layer
-        hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input, W0), B0))
-        hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
-        hidden_3 = tf.nn.relu(tf.add(tf.matmul(hidden_2, W2), B2))
-        hidden_4 = tf.nn.relu(tf.add(tf.matmul(hidden_3, W3), B3))
-
-        # Q value layer
-        self.Q_value = tf.matmul(hidden_4, W4) + B4
+                # Q value layer
+                final = tf.matmul(hidden_4, W4) + B4
+                c.append(final)
+        self.Q_value = tf.add_n(c)
 
         # Output variables
         self.action_input = tf.placeholder('float', [None, 3])
@@ -115,7 +121,8 @@ class Q_Trader(object):
         # Training Method
         Q_action = tf.reduce_sum(tf.multiply(self.Q_value, self.action_input), reduction_indices=1)
         self.cost = tf.reduce_mean(tf.square(self.y_input - Q_action))
-        self.optimizer = tf.train.AdamOptimizer(self.lr).minimize(self.cost, global_step=self.global_step)
+        self.optimizer = tf.train.AdamOptimizer(self.lr).minimize(
+            self.cost, global_step=self.global_step, colocate_gradients_with_ops=True)
         pass
 
     def egreedy_action(self, state):

@@ -93,6 +93,7 @@ class DataStruct(pd.DataFrame):
         :return: A numpy array of the dataframe.
         """
         df = self
+        pair = df.pair
         cols = []
         for i in range(20):
             cols.append('close_{}'.format(i))
@@ -100,6 +101,7 @@ class DataStruct(pd.DataFrame):
 
         # working_df = pd.DataFrame(columns=cols)
         working_df = DataStruct(columns=cols)
+        working_df.pair = pair
         for index in range(len(df)):
             # start once we have 20 samples!
             if index <= len(df) - 20:
@@ -122,6 +124,7 @@ class DataStruct(pd.DataFrame):
         :return: A numpy array of the dataframe.
         """
         df = self
+        pair = df.pair
         df = df[-20:]
         series = []
         for x, y in zip(df['close'], df['vol']):

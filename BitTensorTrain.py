@@ -106,7 +106,13 @@ class Bittensor(object):
                 iters = trange(2)
             else:
                 training_cycles = trange(10)
-                iters = trange(int(len(data) / 240))
+                iters = trange(int(len(data) / 240),
+                                ascii=True,
+                                desc="{}".format('iters'),
+                                dynamic_ncols=True,
+                                smoothing=0,
+                                leave=False,
+                                unit_scale=True)
 
 
             for i in training_cycles:

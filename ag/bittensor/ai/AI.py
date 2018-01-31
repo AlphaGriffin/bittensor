@@ -56,7 +56,9 @@ class Q_Trader(object):
 
         # Start the Setup
         self.setup()
-        self.session = tf.InteractiveSession()
+        self.session = tf.InteractiveSession(config=tf.ConfigProto(
+                allow_soft_placement=True,
+                )
         """
         WARNING! ACHTUNG!
         ALWAYS INIT GLOBALS TO ZERO WITH initializer...
@@ -81,6 +83,8 @@ class Q_Trader(object):
 
         # input layer
         self.state_input = tf.placeholder('float', [None, 40])
+        # self.state_input = tf.placeholder('float', [None, 60, 9])
+
 
         # 2018 way to init some fucking w and b
         sigma = 1

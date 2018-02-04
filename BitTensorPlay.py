@@ -50,7 +50,7 @@ import ag.logging as log
 # set globals
 log.set(log.WARN)
 
-
+""" Silly idea...
 def setInterval(interval):
     def decorator(function):
         def wrapper(*args, **kwargs):
@@ -66,7 +66,7 @@ def setInterval(interval):
             return stopped
         return wrapper
     return decorator
-
+"""
 
 class BitTensorPlay(object):
     def __init__(self, options):

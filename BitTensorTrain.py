@@ -8,7 +8,7 @@ __author__ = "Eric Petersen @Ruckusist"
 __copyright__ = "Copyright 2018, The Alpha Griffin Project"
 __credits__ = ["Eric Petersen", "Shawn Wilson", "@alphagriffin"]
 __license__ = "***"
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __maintainer__ = "Eric Petersen"
 __email__ = "ruckusist@alphagriffin.com"
 __status__ = "Beta"
@@ -25,7 +25,8 @@ from tqdm import tqdm, trange
 import ccxt
 
 # Tensorflow
-from ag.bittensor.ai.AI import Q_Trader as bot
+from ag.bittensor.ai.AI import Q_Trader
+import numpy as np
 
 # Dataset
 import ag.bittensor.ai.dataprep as dataprep
@@ -68,7 +69,7 @@ class Bittensor(object):
         # log.debug('Loaded gHooks Program.')
         self.P = printer.Printer(options)
         log.debug('Loaded Printer Program.')
-        # self.agent = autoI.Q_Trader(options)
+        # self.agent = Q_Trader(options)
         # log.debug('Loaded AI Program.')
         self.dataHandler = dataprep.DataHandler(options)
         log.debug('Loaded Data Handler Program')
@@ -81,24 +82,58 @@ class Bittensor(object):
 
         self.P('Starting BitTensor Service.')
         log.debug('Checking Configuration...')
+        """
         self.P('Using Exchanges:')
         for id in list(self.options.use_exchanges.split(',')):
             self.P("{}".format(id))
         self.P('Trading Pairs:')
         for id in list(self.options.use_pairs.split(',')):
             self.P("{}".format(id))
+        """
+
+    def remain(self):
+        self.P('Thing #1: get Dataset')
+        ss = self.get_megaset()
+        self.P('Thing #2: setup Model')
+        model = Q_Trader(self.options)
+        self.P('Thing #3: Train the Model')
+        for i in trange(2):
+            for j in trange(4):
+                batch = ss[j * 240: j * 240 + 240]
+                env = StockEnv(batch)
+                set = env.reset()
+                while True:
+                    action = model.egreedy_action(set)
+                    next_set, reward, done = env.gostep(action)
+                    model.train(set, action, reward, next_set, done)
+                    set = next_set
+                    if done:
+                        tqdm.write("Total Global Steps: {} | Loss: {} | Reward: {}".format(
+                            model.stats.g_step, model.stats.cost, env.cash), end='\r')
+                        break
+            model.save_or_load()
+            tqdm.write('Saved @ Global Step: {}, Total Loss: {}'.format(
+                model.stats.g_step, model.stats.cost
+            ))
+            # finish stats
+        self.P('Total Runtime is {:.1f} mins'.format(float(timer() - runtime) / 60))
+        return True
 
     def main(self):
         exchange = 'poloniex'
         pair = 'LTC/BTC'
 
-        ss = self.get_dataset(exchange, pair)
-        self.P('Total Runtime to collect and process all data for 1 pair is {:.1f} mins'.format(float(timer()-runtime)/60))
+        # ss = self.get_dataset(exchange, pair)
+        ss = self.get_megaset()
+        # self.P('Total Runtime to collect and process all data is {:.1f} mins'.format(float(timer()-runtime)/60))
         # start AI engine.
         Agent = bot(self.options)
         Agent.running = True
         data = ss
-        if True:
+        print("trying to finish here... SHAPE: {}".format(np.array(data).shape))
+        # print(data.shape)
+        # exit()
+        if False:
             self.P('Gathering options for training session.')
 
             if False:
@@ -195,6 +230,30 @@ class Bittensor(object):
         ss = ss.as_matrix()
         return ss
 
+    def get_megaset(self):
+        filename = 'AG_megaset.npy'
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        if self.options.save_file:
+            if os.path.exists(os.path.join(dir_path, 'data', 'datasets', filename)):
+                self.P('Loading Saved Superset')
+                ss = np.load(os.path.join(dir_path, 'data', 'datasets', filename))
+                self.P('Found {} elements per line, and a shape of {}'.format(len(ss[0]), ss.shape))
+            else:
+                self.P('Fetching new Pricedata... This could take up to 5 mins.')
+                start = timer()
+                ss = self.dataHandler.get_all_dataframes()
+                np.save(os.path.join(dir_path, 'data', 'datasets', filename), ss)
+                print('####\n\n {} \n\n####'.format(ss.shape))
+                self.P('Took {:.1f} mins to build fixed time set.'.format(float(timer() - start) / 60))
+
+
+        else:
+            start = timer()
+            ss = self.dataHandler.get_all_dataframes()
+            self.P('Took {:.1f} mins to build fixed time set.'.format(float(timer() - start) / 60))
+
+        return ss
+
 
 def main():
     """Launcher for the app."""
@@ -208,7 +267,7 @@ def main():
         print(": After that, restart this app.")
         exit('AlphaGriffin | 2018')
     app = Bittensor(config)
-    if app.main():
+    if app.remain():
         return True
     return False
 

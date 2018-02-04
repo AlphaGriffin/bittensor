@@ -28,6 +28,10 @@ class Plot(object):
 
     def __init__(self, options):
         self.options = options
+        self.in_notebook = False
+
+    def output_notebook_():
+        self.in_notebook = True
 
     @staticmethod
     def Plot_me(dataframe, to_file=False):
@@ -108,8 +112,15 @@ class Plot(object):
 
         if to_file:
             output_file(os.path.join(os.getcwd(), 'html', 'graphs', filename))
-        show(layout(
+        if not self.in_notebook:
+            show(layout(
+                    [p], [button_1, button_2]
+                    # [button for button in buttons]
+                    ))
+            return filename
+        else:
+            output_notebook()
+            return layout(
                 [p], [button_1, button_2]
                 # [button for button in buttons]
-                ))
-        return filename
+                )

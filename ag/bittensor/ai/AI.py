@@ -8,7 +8,7 @@ __author__ = "Eric Petersen @Ruckusist"
 __copyright__ = "Copyright 2018, The Alpha Griffin Project"
 __credits__ = ["Eric Petersen", "Shawn Wilson", "@alphagriffin"]
 __license__ = "***"
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __maintainer__ = "Eric Petersen"
 __email__ = "ruckusist@alphagriffin.com"
 __status__ = "Beta"
@@ -55,10 +55,13 @@ class Q_Trader(object):
         self.batch_size = 32
 
         # Start the Setup
-        self.setup()
+        # 4 GPU
+        # self.setup()
+        # 1 GPU
+        self.setup_playback()
         self.session = tf.InteractiveSession(config=tf.ConfigProto(
                 allow_soft_placement=True,
-                )
+                ))
         """
         WARNING! ACHTUNG!
         ALWAYS INIT GLOBALS TO ZERO WITH initializer...
@@ -92,7 +95,7 @@ class Q_Trader(object):
         bias_initializer = tf.zeros_initializer()
 
         c = []
-        for i in range(4):
+        for i in range(1):
             with tf.device('/gpu:{}'.format(i)):
                 # TODO: make this iteritive
                 # TODO: make the input and output dimensions fit the dataset automatic
@@ -116,6 +119,85 @@ class Q_Trader(object):
                 # Q value layer
                 final = tf.matmul(hidden_4, W4) + B4
                 c.append(final)
+        self.Q_value = tf.add_n(c)
+
+        # Output variables
+        self.action_input = tf.placeholder('float', [None, 3])
+        self.y_input = tf.placeholder('float', [None])
+
+        # Training Method
+        Q_action = tf.reduce_sum(tf.multiply(self.Q_value, self.action_input), reduction_indices=1)
+        self.cost = tf.reduce_mean(tf.square(self.y_input - Q_action))
+        self.optimizer = tf.train.AdamOptimizer(self.lr).minimize(
+            self.cost, global_step=self.global_step, colocate_gradients_with_ops=True)
+        pass
+
+    def setup_playback(self):
+        # Gotta have a global step man!
+        self.global_step = tf.Variable(0,
+            name='global_step', trainable=False)
+        # Decay the learning rate exponentially based on the number of steps.
+        self.lr = tf.train.exponential_decay(.095,
+                                        self.global_step,
+                                        .000005,
+                                        0.87,
+                                        staircase=True,
+                                        name="Learn_decay")
+
+        # input layer
+        self.state_input = tf.placeholder('float', [None, 360])
+        # self.state_input = tf.placeholder('float', [None, 60, 9])
+
+
+        # 2018 way to init some fucking w and b
+        sigma = 1
+        weight_initializer = tf.variance_scaling_initializer(mode="fan_avg", distribution="uniform", scale=sigma)
+        bias_initializer = tf.zeros_initializer()
+
+        c = []
+        # for i in range(1):
+        """ There might be too many layers going on here for this ...
+        with tf.device('/gpu:3'):
+            # TODO: make this iteritive
+            # TODO: make the input and output dimensions fit the dataset automatic
+            W0 = tf.Variable(weight_initializer([40, 1024]))
+            B0 = tf.Variable(bias_initializer([1024]))
+            W1 = tf.Variable(weight_initializer([1024, 512]))
+            B1 = tf.Variable(bias_initializer([512]))
+            W2 = tf.Variable(weight_initializer([512, 256]))
+            B2 = tf.Variable(bias_initializer([256]))
+            W3 = tf.Variable(weight_initializer([256, 128]))
+            B3 = tf.Variable(bias_initializer([128]))
+            W4 = tf.Variable(weight_initializer([128, 3]))
+            B4 = tf.Variable(bias_initializer([3]))
+
+            # Hidden layer
+            hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input, W0), B0))
+            hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
+            hidden_3 = tf.nn.relu(tf.add(tf.matmul(hidden_2, W2), B2))
+            hidden_4 = tf.nn.relu(tf.add(tf.matmul(hidden_3, W3), B3))
+
+            # Q value layer
+            final = tf.matmul(hidden_4, W4) + B4
+            # c.append(final)
+        # self.Q_value = tf.add_n(c)
+        self.Q_value = final
+        """
+        for i in range(3):  # only 2 is working right now... go back to 4
+            with tf.device('/gpu:{}'.format(i)):
+                W0 = tf.Variable(weight_initializer([360, 256]))
+                B0 = tf.Variable(bias_initializer([256]))
+                W1 = tf.Variable(weight_initializer([256, 128]))
+                B1 = tf.Variable(bias_initializer([128]))
+                W2 = tf.Variable(weight_initializer([128, 3]))
+                B2 = tf.Variable(bias_initializer([3]))
+
+                hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input, W0), B0))
+                hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
+                # Q value layer
+                final = tf.matmul(hidden_2, W2) + B2
+                c.append(final)
+        # average over all GPUs
         self.Q_value = tf.add_n(c)
 
         # Output variables
@@ -177,13 +259,11 @@ class Q_Trader(object):
                 ))
         return
 
-
     def getLoss(self):
         """
         this shouldnt be that hard....
         """
         return self.stats.cost
-
 
     def train(self, state, action, reward, state_, done):
         self.time_step += 1
@@ -194,7 +274,6 @@ class Q_Trader(object):
             self.replay_buffer.popleft()
         if len(self.replay_buffer) > 100:  # after 100 step ,pre  train
             self.training()
-
 
     def training(self):
         # get random  sample from replay buffer

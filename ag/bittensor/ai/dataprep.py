@@ -8,7 +8,7 @@ __author__ = "Eric Petersen @Ruckusist"
 __copyright__ = "Copyright 2018, The Alpha Griffin Project"
 __credits__ = ["Eric Petersen", "Shawn Wilson", "@alphagriffin"]
 __license__ = "***"
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __maintainer__ = "Eric Petersen"
 __email__ = "ruckusist@alphagriffin.com"
 __status__ = "Beta"
@@ -16,12 +16,14 @@ __status__ = "Beta"
 #////////////////// | Imports | \\\\\\\\\\\\\\\#
 # generic
 import os, sys, time, datetime, collections
+from timeit import default_timer as timer
 from decimal import Decimal as D
 import pandas as pd
 import numpy as np
 
 import ccxt
-# import ag.bittensor.api.poloniex as Polo
+
+from tqdm import tqdm, trange
 
 class DataStruct(pd.DataFrame):
     """
@@ -168,25 +170,37 @@ class DataHandler(object):
         :return: A custom pandas dataframe with a fix_time and superset functions added.
         """
         # add setup info for ccxt
-        config = {'rateLimit': 3000,
-                  'enableRateLimit': True,
-                  # 'verbose': True,
-                  }
-        # this is a setup with no login.
-        this_exchange = eval('ccxt.{}({})'.format(exchange, config))
-        time.sleep(this_exchange.rateLimit / 1000)
+        # adding in func save feature
+        filename = 'df_{}_{}.csv'.format(exchange, pair)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        if os.path.exists(os.path.join(dir_path, 'data', 'datasets', filename)):
+            self.P('Loading Saved for {} | {}'.format(exchange, pair))
+            df = pd.read_csv(os.path.join(dir_path, 'data', 'datasets', filename))
+            coin1, coin2 = pair.split('/')
+            df.pair = '{}_{}'.format(coin1, coin2)
+            df.exchange = exchange
+        else:
+            config = {'rateLimit': 3000,
+                      'enableRateLimit': True,
+                      # 'verbose': True,
+                      }
+            # this is a setup with no login.
+            this_exchange = eval('ccxt.{}({})'.format(exchange, config))
+            start_time = timer()
+            time.sleep(this_exchange.rateLimit / 400)
 
-        # this is the webcall for candlestick data
-        OHLCVS = this_exchange.fetch_ohlcv(
-            pair, '5m', this_exchange.parse8601(self.options.use_start_date)
-        )
-
-        # put that in the custom dataframe
-        df = DataStruct(OHLCVS,
-                        columns=['time', 'open', 'high', 'low', 'close', 'vol'])
-        df.exchange = exchange
-        coin1, coin2 = pair.split('/')
-        df.pair = '{}_{}'.format(coin1, coin2)
+            # this is the webcall for candlestick data
+            OHLCVS = this_exchange.fetch_ohlcv(
+                pair, '5m', this_exchange.parse8601(self.options.use_start_date)
+            )
+            print('Downloaded {}'.format(pair))
+            # put that in the custom dataframe
+            df = DataStruct(OHLCVS,
+                            columns=['time', 'open', 'high', 'low', 'close', 'vol'])
+            df.exchange = exchange
+            coin1, coin2 = pair.split('/')
+            df.pair = '{}_{}'.format(coin1, coin2)
+            df.to_csv(os.path.join(dir_path, 'data', 'datasets', filename))
         return df
 
     def get_playback_candles(self, exchange='poloniex', pair='BTC/USDT'):
@@ -216,3 +230,94 @@ class DataHandler(object):
         coin1, coin2 = pair.split('/')
         df.pair = '{}_{}'.format(coin1, coin2)
         return df
+
+    def pack_rows3(self, pairs, samples, count, stop=None):
+        size = count - (samples - 1)
+        if stop is not None and stop < size:
+            size = stop
+
+        result = np.empty(shape=(size, len(pairs)*2*samples)) # rows of 1080 columns each (9 pairs * 2 variables * 60 historical samples)
+
+        for p, rows in enumerate(pairs):
+            # print(rows.pair)
+            history = [] # keep 'samples' historical entries
+            r = -1
+            for rr, row in rows.iterrows():
+                r += 1
+                if stop is not None and r >= stop + samples - 1:
+                    break
+                history.append(row)
+
+                if r < samples - 1:
+                    continue
+
+                columns = result[r - (samples - 1)]
+
+                for s in range(samples):
+                    entry = history[samples - 1 - s]
+                    columns[p*samples+s*2] = entry['close']
+                    columns[p*samples+s*2+1] = entry['vol']
+
+                history.pop(0) # keep history trimmed to 'samples' size
+
+        return result
+
+    def get_all_dataframes(self):
+        coins_to_use = ['ETH/BTC', 'XRP/BTC', 'DASH/BTC' , 'XMR/BTC',
+                'BTS/BTC', 'DOGE/BTC', 'FCT/BTC', 'MAID/BTC', 'CLAM/BTC']
+        datasets = []
+        min_len = 1000000
+        # download all the coins
+        print('Downloading coins')
+        for coin in coins_to_use:
+            chart = self.get_candles(pair=coin)
+            # time.sleep(2)
+            this_len = len(chart)
+            if this_len < min_len:
+                min_len = this_len
+            datasets.append(chart)
+        print('Downloaded {} coins.'.format(len(datasets)))
+        new_datasets = []
+        # trim all the datasets to min_len
+        print('Trimming Lens')
+        for d in datasets:
+            pair = d.pair
+            this_len = len(d)
+            if this_len == min_len:
+                new_datasets.append(d)
+            elif this_len > min_len:
+                trim_section_start = len(d['time']) - min_len
+                df = d[trim_section_start:]
+                df.pair = pair
+                new_datasets.append(df)
+        superset = []
+        elements_per_coin = 20
+        num_coins = len(new_datasets)
+        my_range = min_len - elements_per_coin
+        print('Creating {} Rows'.format(my_range))
+        for i in trange(my_range):
+        # for i in range(3333):
+            if i % 1000 == 0:
+                tqdm.write('Completed {} of {} rows.'.format(i, my_range), end='\r')
+            if i > elements_per_coin:
+                datarow = []
+                for d in range(num_coins):
+                    dataframe = new_datasets[d]
+                    _len = len(dataframe)
+                    curr = _len - i
+                    for j in range(elements_per_coin):
+                        price = D(dataframe.loc[curr]['close'])
+                        vol = D(dataframe.loc[curr]['vol'])
+                        datarow.append(price)
+                        datarow.append(vol)
+                        # do mean for last 20 elements... i think its just df[x-20:x].mean()
+                superset.append(datarow)
+
+        # for df in new_datasets:
+        #     pair = df.pair
+
+        # superset = self.pack_rows3(new_datasets, 60, min_len, 1000)
+        return np.array(superset)
+
+    def get_apples(self, exchange='bitmex'):
+        pass

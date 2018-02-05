@@ -1,6 +1,7 @@
 ### BITTENSOR IGNORE FILES ###
 
 .idea
+.vs
 
 # hide your personal keys when sharing your git.
 config/access_codes.yaml
@@ -21,6 +22,7 @@ saved_notebooks/*
 html/*
 data/*
 notebooks/.ipynb_checkpoints/*
+
 
 ### REMOVE ALL THE GENERATED SAVE DATA
 *.swp

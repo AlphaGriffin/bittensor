@@ -17,13 +17,15 @@ __status__ = "Beta"
 # generic
 import os, sys, time, datetime, collections
 from timeit import default_timer as timer
-from decimal import Decimal as D
+from decimal import Decimal as D, getcontext
 import pandas as pd
 import numpy as np
 
 import ccxt
 
 from tqdm import tqdm, trange
+getcontext().prec = 9
+# getcontext().rounding = ROUND_UP
 
 class DataStruct(pd.DataFrame):
     """
@@ -154,6 +156,7 @@ class DataHandler(object):
         self.data = DataStruct([[1,2,3,4,5], ['a','b','c','d','e']], columns=['time','that','other','thing1','thing2'])
         self.source = ccxt
         self.options = options
+        
 
     def main(self):
         # new_dataframe =  self.data.fix_time()
@@ -169,14 +172,17 @@ class DataHandler(object):
         :param pair: A known trading pair, try seaching for this first and insert programatically.
         :return: A custom pandas dataframe with a fix_time and superset functions added.
         """
+        coin1, coin2 = pair.split('/')
+        this_pair = '{}_{}'.format(coin1, coin2)
         # add setup info for ccxt
         # adding in func save feature
-        filename = 'df_{}_{}.csv'.format(exchange, pair)
-        dir_path = os.path.dirname(os.path.realpath(__file__))
+        filename = 'df_{}_{}.csv'.format(exchange, this_pair)
+        # dir_path = os.path.dirname(os.path.realpath(__file__))  # this is the placement of this file..
+        dir_path = os.getcwd()
         if os.path.exists(os.path.join(dir_path, 'data', 'datasets', filename)):
-            self.P('Loading Saved for {} | {}'.format(exchange, pair))
+            print('Loading Saved DataFrame for {} | {}'.format(exchange, pair))
             df = pd.read_csv(os.path.join(dir_path, 'data', 'datasets', filename))
-            coin1, coin2 = pair.split('/')
+            
             df.pair = '{}_{}'.format(coin1, coin2)
             df.exchange = exchange
         else:
@@ -262,7 +268,7 @@ class DataHandler(object):
 
         return result
 
-    def get_all_dataframes(self):
+    def get_all_dataframes(self, normalize=True):
         coins_to_use = ['ETH/BTC', 'XRP/BTC', 'DASH/BTC' , 'XMR/BTC',
                 'BTS/BTC', 'DOGE/BTC', 'FCT/BTC', 'MAID/BTC', 'CLAM/BTC']
         datasets = []
@@ -290,31 +296,73 @@ class DataHandler(object):
                 df = d[trim_section_start:]
                 df.pair = pair
                 new_datasets.append(df)
-        superset = []
+        
+        # feed forward last number to replace zeros in volume
+        # newer_datasets = []
+        print('Fixing Zeros.')
+        for d in new_datasets:
+            d['vol'].replace(to_replace=0, method='ffill')
+            d['close'].replace(to_replace=0, method='ffill')
+        # Extract the data to create superset
+        num_elements = 6
         elements_per_coin = 20
         num_coins = len(new_datasets)
-        my_range = min_len - elements_per_coin
+        # my_range = min_len - elements_per_coin
+        my_range = 1000
+        superset = np.empty(shape=(
+                my_range, 
+                num_coins * num_elements * elements_per_coin)
+                ) 
+        
         print('Creating {} Rows'.format(my_range))
         for i in trange(my_range):
-        # for i in range(3333):
             if i % 1000 == 0:
                 tqdm.write('Completed {} of {} rows.'.format(i, my_range), end='\r')
             if i > elements_per_coin:
                 datarow = []
-                for d in range(num_coins):
-                    dataframe = new_datasets[d]
-                    _len = len(dataframe)
-                    curr = _len - i
-                    for j in range(elements_per_coin):
-                        price = D(dataframe.loc[curr]['close'])
-                        vol = D(dataframe.loc[curr]['vol'])
-                        datarow.append(price)
-                        datarow.append(vol)
-                        # do mean for last 20 elements... i think its just df[x-20:x].mean()
-                superset.append(datarow)
-
-        # for df in new_datasets:
-        #     pair = df.pair
+                try:
+                    for d in range(num_coins):
+                        dataframe = new_datasets[d]
+                        _len = len(dataframe)
+                        curr = _len - i
+                        for j in range(elements_per_coin):
+                            if normalize:
+                                this_price = D.from_float(dataframe.loc[curr]['close'])
+                                this_vol = D.from_float(dataframe.loc[curr-5:curr]['vol'].mean())
+                                last_price = D.from_float(dataframe.loc[curr - 1]['close'])
+                                last_vol = D.from_float(dataframe.loc[curr-6:curr - 1]['vol'].mean())
+                                hour_price = D(dataframe.loc[curr - 12:curr]['close'].mean())
+                                hour_vol = D(dataframe.loc[curr - 12:curr]['vol'].mean())
+                                Two_hour_price = D(dataframe.loc[curr - 20:curr]['close'].mean())
+                                Two_hour_vol = D(dataframe.loc[curr - 20:curr]['vol'].mean())
+                                pchange = this_price / last_price - 1
+                                vchange = this_vol / last_vol - 1
+                                hpchange = hour_price / last_price - 1
+                                hvchange = hour_vol / last_vol - 1
+                                thpchange = Two_hour_price / last_price - 1
+                                thvchange = Two_hour_vol / last_vol - 1
+                                # print(pchange, vchange, hpchange, hvchange, thpchange, thvchange)
+                                # exit()
+                                datarow.append(pchange)
+                                datarow.append(vchange)
+                                datarow.append(hpchange)
+                                datarow.append(hvchange)
+                                datarow.append(thpchange)
+                                datarow.append(thvchange)
+                            else:
+                                price = D(dataframe.loc[curr]['close'])
+                                vol = D(dataframe.loc[curr]['vol'])
+                                datarow.append(price)
+                                datarow.append(vol)
+                            # do mean for last 20 elements... i think its just df[x-20:x].mean()
+                        # superset.append(datarow)
+                    superset[i] = datarow
+                except Exception as e:
+                    # print('{} is broken'.format(new_datasets[d].pair))
+                    # print(e)
+                    # print('Skipping 1 row.')
+                    pass
+                
 
         # superset = self.pack_rows3(new_datasets, 60, min_len, 1000)
         return np.array(superset)

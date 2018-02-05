@@ -34,9 +34,9 @@ class Q_Trader(object):
     This handles all the flowing tensors.
     """
 
-    def __init__(self, options):
+    def __init__(self, options, dataset):
         self.options = options
-
+        self.dataset = dataset
         class RuntimeStats(): pass;  # dummy stats holder
 
         self.stats = RuntimeStats()
@@ -49,30 +49,45 @@ class Q_Trader(object):
         self.epsilon = .09
         self.gamma = .09
         self.replay_size = 500
-        self.state_dim = 40
+        self.state_dim = self.dataset.shape[1]
         self.action_dim = 3
         self.stats.g_step = 0
         self.batch_size = 32
+        self.num_gpus = self.options.num_gpus
 
         # Start the Setup
         # 4 GPU
         # self.setup()
         # 1 GPU
-        self.setup_playback()
-        self.session = tf.InteractiveSession(config=tf.ConfigProto(
-                allow_soft_placement=True,
-                ))
+        self.setup_proper()
+        # GPU SUPPORT IS BACK!!! 
+        gpu_config = tf.GPUOptions(per_process_gpu_memory_fraction=0.3333)
+        try:
+            self.session = tf.InteractiveSession(config=tf.ConfigProto(
+                    # allow_soft_placement=True,
+                    gpu_options=gpu_config
+                   ))
+            print('Started Session', end='\r')
+        except:
+            print('Cant Start a session... Failing.', end='\r')
         """
         WARNING! ACHTUNG!
         ALWAYS INIT GLOBALS TO ZERO WITH initializer...
         THEN LOAD A PREVIOUSLY SAVED STATE...
         """
         self.session.run(tf.global_variables_initializer())
+        print('Initialized globals successfully', end='\r')
         # AFTER SETUP RUN SAVE OR LOAD
         self.saver = tf.train.Saver()
+        self.running = True
         self.save_or_load()
+        print('finished model init', end='\r')
 
-    def setup(self):
+    @property
+    def IsRunning(self):
+        return self.running
+
+    def setup_OLD(self):
         # Gotta have a global step man!
         self.global_step = tf.Variable(0,
             name='global_step', trainable=False)
@@ -93,9 +108,9 @@ class Q_Trader(object):
         sigma = 1
         weight_initializer = tf.variance_scaling_initializer(mode="fan_avg", distribution="uniform", scale=sigma)
         bias_initializer = tf.zeros_initializer()
-
+        print('setting up gpus')
         c = []
-        for i in range(1):
+        for i in range(4):
             with tf.device('/gpu:{}'.format(i)):
                 # TODO: make this iteritive
                 # TODO: make the input and output dimensions fit the dataset automatic
@@ -120,7 +135,7 @@ class Q_Trader(object):
                 final = tf.matmul(hidden_4, W4) + B4
                 c.append(final)
         self.Q_value = tf.add_n(c)
-
+        print('passed gpus setup')
         # Output variables
         self.action_input = tf.placeholder('float', [None, 3])
         self.y_input = tf.placeholder('float', [None])
@@ -132,20 +147,20 @@ class Q_Trader(object):
             self.cost, global_step=self.global_step, colocate_gradients_with_ops=True)
         pass
 
-    def setup_playback(self):
+    def setup_proper(self, num_gpus=4):
         # Gotta have a global step man!
         self.global_step = tf.Variable(0,
             name='global_step', trainable=False)
         # Decay the learning rate exponentially based on the number of steps.
         self.lr = tf.train.exponential_decay(.095,
                                         self.global_step,
-                                        .000005,
+                                        .00005,
                                         0.87,
                                         staircase=True,
                                         name="Learn_decay")
 
         # input layer
-        self.state_input = tf.placeholder('float', [None, 360])
+        self.state_input = tf.placeholder('float', [None, self.state_dim])
         # self.state_input = tf.placeholder('float', [None, 60, 9])
 
 
@@ -183,22 +198,37 @@ class Q_Trader(object):
         # self.Q_value = tf.add_n(c)
         self.Q_value = final
         """
-        for i in range(3):  # only 2 is working right now... go back to 4
-            with tf.device('/gpu:{}'.format(i)):
-                W0 = tf.Variable(weight_initializer([360, 256]))
-                B0 = tf.Variable(bias_initializer([256]))
-                W1 = tf.Variable(weight_initializer([256, 128]))
-                B1 = tf.Variable(bias_initializer([128]))
-                W2 = tf.Variable(weight_initializer([128, 3]))
-                B2 = tf.Variable(bias_initializer([3]))
+        
+        if num_gpus > 0:
+            print('starting gpus setup', end='\r')
+            for i in range(num_gpus):
+                with tf.device('/gpu:{}'.format(i)):
+                    W0 = tf.Variable(weight_initializer([self.state_dim, 256]))
+                    B0 = tf.Variable(bias_initializer([256]))
+                    W1 = tf.Variable(weight_initializer([256, 128]))
+                    B1 = tf.Variable(bias_initializer([128]))
+                    W2 = tf.Variable(weight_initializer([128, 3]))
+                    B2 = tf.Variable(bias_initializer([3]))
 
-                hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input, W0), B0))
-                hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
-                # Q value layer
-                final = tf.matmul(hidden_2, W2) + B2
-                c.append(final)
-        # average over all GPUs
-        self.Q_value = tf.add_n(c)
+                    hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input, W0), B0))
+                    hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
+                    # Q value layer
+                    final = tf.matmul(hidden_2, W2) + B2
+                    c.append(final)
+            self.Q_value = tf.add_n(c)
+        else:  # No Gpus
+            print("setup with no gpus", end='\r')
+            W0 = tf.Variable(weight_initializer([self.state_dim, 256]))
+            B0 = tf.Variable(bias_initializer([256]))
+            W1 = tf.Variable(weight_initializer([256, 128]))
+            B1 = tf.Variable(bias_initializer([128]))
+            W2 = tf.Variable(weight_initializer([128, 3]))
+            B2 = tf.Variable(bias_initializer([3]))
+
+            hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input, W0), B0))
+            hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
+            # Q value layer
+            self.Q_value = tf.matmul(hidden_2, W2) + B2
 
         # Output variables
         self.action_input = tf.placeholder('float', [None, 3])
@@ -208,7 +238,11 @@ class Q_Trader(object):
         Q_action = tf.reduce_sum(tf.multiply(self.Q_value, self.action_input), reduction_indices=1)
         self.cost = tf.reduce_mean(tf.square(self.y_input - Q_action))
         self.optimizer = tf.train.AdamOptimizer(self.lr).minimize(
-            self.cost, global_step=self.global_step, colocate_gradients_with_ops=True)
+            self.cost, 
+            global_step=self.global_step, 
+            colocate_gradients_with_ops=True
+            )
+        print('finished Model setup', end='\r')
         pass
 
     def egreedy_action(self, state):
@@ -237,6 +271,7 @@ class Q_Trader(object):
         return np.argmax(Q_value)
 
     def save_or_load(self):
+        print('trying to save or load', end='\r')
         folder = os.path.join(os.getcwd(), 'data', 'models', 'Q_Network')
         filename = '/Q_Trader_Network'
         if self.running:  # SAVE
@@ -251,12 +286,14 @@ class Q_Trader(object):
             check_point = tf.train.get_checkpoint_state(folder)
             if check_point and check_point.model_checkpoint_path:
                 self.saver.restore(self.session, check_point.model_checkpoint_path)
-                print('Loaded Previously Saved State. Get current worked number of steps.')
+                print('Loaded Previously Saved State. Get current worked number of steps.', end='\r')
                 return
             else:
-                print('No Previously Saved State. New model will be saved to:\n\t{}'.format(
-                    folder + filename
-                ))
+                print('No Previously Saved State Found.')
+                #print('No Previously Saved State. New model will be saved to:\n\t{}'.format(
+                #   folder + filename
+                #), end='\r')
+        print('finished save or load', end='\r')
         return
 
     def getLoss(self):
@@ -267,7 +304,7 @@ class Q_Trader(object):
 
     def train(self, state, action, reward, state_, done):
         self.time_step += 1
-        one_hot_action = np.zeros(3)
+        one_hot_action = np.zeros(self.action_dim)
         one_hot_action[action] = 1
         self.replay_buffer.append((state, one_hot_action, reward, state_, done))
         if len(self.replay_buffer) > self.replay_size:  # this is a rolling window

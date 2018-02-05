@@ -6,11 +6,11 @@
 #   - options.key = value                              #
 ########################################################
 
-#=====| LAST UPDATED: Dec. 7, 17 |======#
+#=====| LAST UPDATED: Feb. 5, 18 |======#
 
 #//////| APP |\\\\\\#
-verbose: False
-user_email: 'dummy@alphagriffin.com'
+verbose: True
+user_email: 'eric.alphagriffin@gmail.com'
 notify_by_mail: False
 
 #//////| PRINTER |\\\\\\#
@@ -21,12 +21,10 @@ blocker: '    '
 
 #//////| SpreadSheets |\\\\\\#
 google_api: ''
-google_client_id: ''
+google_client_id: '?????.apps.googleusercontent.com'
 google_client_secret: ''
 
 #//////| EXCHANGES |\\\\\\#
-use_exchanges: 'poloniex,bitmex'
-
 # Binance.com
 binance_api: ''
 binance_secret: ''
@@ -57,7 +55,6 @@ ccex_api: ''
 ccex_secret: ''
 
 # Bittrex.com
-bittrex_2fac: ''
 bittrex_api: ''
 bittrex_secret: ''
 
@@ -75,3 +72,26 @@ suprnovaETN_id: ''
 nicehash_api_id: ''
 nicehash_api: ''
 nicehash_btc_addr: ''
+
+#//////| BitTensor |\\\\\\#
+# Data Collection options
+use_exchanges: 'poloniex'     # Polo has all the options available, some exchanges do not.
+# use_pairs: 'DASH/BTC,LTC/BTC,ETH/BTC,XMR/BTC'
+use_pairs: 'LTC/BTC'
+use_start_date: '2017-11-05 16:20:00'
+# make these static.
+use_period: '5m'              # 5m is the min for polo maybe others
+use_msec: 1000                # this should be static
+use_period_msecs: 300000      # as should this, be static also
+
+
+## Tensorflow options  # increasing these numbers dramatically increases training time!
+num_gpus: 0
+
+# Price Prediction Network
+P_num_layers: 4                # this is the 'Deep' part of deep learning
+P_max_nuerons: 1024            # this is complexity
+
+# Q Network
+Q_num_layers: 4                # this is the 'Deep' part of deep learning
+Q_max_nuerons: 1024            # this is complexity

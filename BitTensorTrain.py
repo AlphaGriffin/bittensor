@@ -82,6 +82,8 @@ class Bittensor(object):
 
         self.P('Starting BitTensor Service.')
         log.debug('Checking Configuration...')
+
+        self.mins_to_train = 2
         """
         self.P('Using Exchanges:')
         for id in list(self.options.use_exchanges.split(',')):
@@ -91,34 +93,51 @@ class Bittensor(object):
             self.P("{}".format(id))
         """
 
-    def remain(self):
+    def main(self):
         self.P('Thing #1: get Dataset')
         ss = self.get_megaset()
         self.P('Thing #2: setup Model')
-        model = Q_Trader(self.options)
-        self.P('Thing #3: Train the Model')
-        for i in trange(2):
-            for j in trange(4):
-                batch = ss[j * 240: j * 240 + 240]
-                env = StockEnv(batch)
-                set = env.reset()
-                while True:
-                    action = model.egreedy_action(set)
-                    next_set, reward, done = env.gostep(action)
-                    model.train(set, action, reward, next_set, done)
-                    set = next_set
-                    if done:
-                        tqdm.write("Total Global Steps: {} | Loss: {} | Reward: {}".format(
-                            model.stats.g_step, model.stats.cost, env.cash), end='\r')
+        model = Q_Trader(self.options, ss)
+        self.P('Thing #3: Training the Model for {} mins'.format(self.mins_to_train))
+        while model.IsRunning:
+            for i in trange(7, desc='Epoch', leave=False, ascii=True, smoothing=0.01):
+                if not model.IsRunning:
+                    break
+                iters = int(len(ss)/240)
+                for j in trange(iters, leave=False, desc='Round', ascii=True, smoothing=0.5):
+                    if not model.IsRunning:
                         break
-            model.save_or_load()
-            tqdm.write('Saved @ Global Step: {}, Total Loss: {}'.format(
-                model.stats.g_step, model.stats.cost
-            ))
-            # finish stats
+                    batch = ss[j * 240: j * 240 + 240]
+                    env = StockEnv(batch)
+                    set = env.reset()
+                    while True:
+                        action = model.egreedy_action(set)
+                        next_set, reward, done = env.gostep(action)
+                        model.train(set, action, reward, next_set, done)
+                        set = next_set
+                        if done:
+                            tqdm.write("Total Global Steps: {} | Loss: {} | Reward: {}".format(
+                                model.stats.g_step, model.stats.cost, env.cash), end='\r')
+                            break
+                    # Training OFF switch ...
+                    cur_runtime = timer() - runtime
+                    if int(cur_runtime / 60) > self.mins_to_train:
+                        model.save_or_load()
+                        model.running = False
+                        self.P('Shutting \'er Down due to time limit.')
+                        break
+                model.save_or_load()
+                tqdm.write('Saved at Global Step: {}, Total Loss: {}'.format(
+                    model.stats.g_step, model.stats.cost
+                ))
+                # finish stats
+                tqdm.write('Current Runtime is {:.1f} mins'.format(float(timer() - runtime) / 60))
+                
         self.P('Total Runtime is {:.1f} mins'.format(float(timer() - runtime) / 60))
+        model.session.close()
         return True
 
+    """ Depricated.
     def main(self):
         exchange = 'poloniex'
         pair = 'LTC/BTC'
@@ -196,7 +215,7 @@ class Bittensor(object):
         return True
 
     def get_dataset(self, exchange, pair):
-        """Main Program."""
+        # Main Program.
         coin1, coin2 = pair.split('/')
         df_filename = 'df_{}_{}_{}.csv'.format(exchange, coin1, coin2)
         ss_filename = 'ss_{}_{}_{}.csv'.format(exchange, coin1, coin2)
@@ -229,6 +248,7 @@ class Bittensor(object):
         self.P('We have a superset, with a len of {}'.format(len(ss)))
         ss = ss.as_matrix()
         return ss
+    """
 
     def get_megaset(self):
         filename = 'AG_megaset.npy'
@@ -239,19 +259,16 @@ class Bittensor(object):
                 ss = np.load(os.path.join(dir_path, 'data', 'datasets', filename))
                 self.P('Found {} elements per line, and a shape of {}'.format(len(ss[0]), ss.shape))
             else:
-                self.P('Fetching new Pricedata... This could take up to 5 mins.')
+                self.P('Fetching new Pricedata... This could take up to an hour.')
+                self.P('Please consider sharing your normalized dataset with the community.')
                 start = timer()
                 ss = self.dataHandler.get_all_dataframes()
                 np.save(os.path.join(dir_path, 'data', 'datasets', filename), ss)
-                print('####\n\n {} \n\n####'.format(ss.shape))
-                self.P('Took {:.1f} mins to build fixed time set.'.format(float(timer() - start) / 60))
-
-
+                self.P('Took {:.1f} mins to build the Megaset.'.format(float(timer() - start) / 60))
         else:
             start = timer()
             ss = self.dataHandler.get_all_dataframes()
             self.P('Took {:.1f} mins to build fixed time set.'.format(float(timer() - start) / 60))
-
         return ss
 
 
@@ -267,7 +284,7 @@ def main():
         print(": After that, restart this app.")
         exit('AlphaGriffin | 2018')
     app = Bittensor(config)
-    if app.remain():
+    if app.main():
         return True
     return False
 

@@ -10,7 +10,7 @@ to help out with the project please donate Litecoin to the following address.
 Litecoin is our preferred transactional coin for its low fees and segwit2x.
 
 ```
-LTC: %% NOT YET SETUP %%
+LTC: M9wm4Hamgt8H7XqAFSmVvdQ6qsKkxLCrx3
 ```
 
 ## Getting Started

@@ -6,7 +6,7 @@
 #   - options.key = value                              #
 ########################################################
 
-#=====| LAST UPDATED: Feb. 5, 18 |======#
+#=====| LAST UPDATED: Dec. 2, 18 |======#
 
 #//////| APP |\\\\\\#
 verbose: True
@@ -16,82 +16,66 @@ notify_by_mail: False
 #//////| PRINTER |\\\\\\#
 border: '|~|'
 filler: ' '
-spacer: ' |#|'
+spacer: '~|#|~'
 blocker: '    '
 
+#//////| Slack Decider |\\\\\\#
+# OAuth Access Token
+slack_decider_api: 'YOUR INFO HERE'
+# Bot User OAuth Access Token
+slack_decider_secret: 'YOUR INFO HERE'
+
 #//////| SpreadSheets |\\\\\\#
-google_api: ''
-google_client_id: '?????.apps.googleusercontent.com'
-google_client_secret: ''
+google_api: 'YOUR INFO HERE'
+google_client_id: 'YOUR INFO HERE'
+google_client_secret: 'YOUR INFO HERE'
 
 #//////| EXCHANGES |\\\\\\#
 # Binance.com
-binance_api: ''
-binance_secret: ''
+binance_api: 'YOUR INFO HERE'
+binance_secret: 'YOUR INFO HERE'
 
 # Bitmex.com
-bitmex_api: ''
-bitmex_secret: ''
+bitmex_api: 'YOUR INFO HERE'
+bitmex_secret: 'YOUR INFO HERE'
 
 # Hitbtc.com
-hitbtc_api: ''
-hitbtc_secret: ''
+hitbtc_api: 'YOUR INFO HERE'
+hitbtc_secret: 'YOUR INFO HERE'
 
 # livecoin.com
 livecoin_api_url: 'https://api.livecoin.net'
-livecoin_api: ''
-livecoin_secret: ''
+livecoin_api: 'YOUR INFO HERE'
+livecoin_secret: 'YOUR INFO HERE'
 
 # Poloniex.com
-poloniex_api: ''
-poloniex_secret: ''
+poloniex_api: 'YOUR INFO HERE'
+poloniex_secret: 'YOUR INFO HERE'
 
 # Cryptopia.com
-cryptopia_api: ''
-cryptopia_secret: ''
+cryptopia_api: 'YOUR INFO HERE'
+cryptopia_secret: 'YOUR INFO HERE'
 
 # C-cex.com
-ccex_api: ''
-ccex_secret: ''
+ccex_api: 'YOUR INFO HERE'
+ccex_secret: 'YOUR INFO HERE'
 
 # Bittrex.com
-bittrex_api: ''
-bittrex_secret: ''
+bittrex_2fac: 'YOUR INFO HERE'
+bittrex_api: 'YOUR INFO HERE'
+bittrex_secret: 'YOUR INFO HERE'
 
 
 #//////| MINING POOLS |\\\\\\#
 # Blockfactory.com
-blockfactory_api: ''
+blockfactory_api: 'YOUR INFO HERE'
 
 # suprnova.cc
-suprnovaETN_url: 'https://etn.sup.rnova.cc/index.php?page=api&action=getuserstatus&api_key='
-suprnovaETN_api: ''
-suprnovaETN_id: ''
+suprnovaETN_url: 'YOUR INFO HERE'
+suprnovaETN_api: 'YOUR INFO HERE'
+suprnovaETN_id: 'YOUR INFO HERE'
 
 # NICEHASH.com
-nicehash_api_id: ''
-nicehash_api: ''
-nicehash_btc_addr: ''
-
-#//////| BitTensor |\\\\\\#
-# Data Collection options
-use_exchanges: 'poloniex'     # Polo has all the options available, some exchanges do not.
-# use_pairs: 'DASH/BTC,LTC/BTC,ETH/BTC,XMR/BTC'
-use_pairs: 'LTC/BTC'
-use_start_date: '2017-11-05 16:20:00'
-# make these static.
-use_period: '5m'              # 5m is the min for polo maybe others
-use_msec: 1000                # this should be static
-use_period_msecs: 300000      # as should this, be static also
-
-
-## Tensorflow options  # increasing these numbers dramatically increases training time!
-num_gpus: 0
-
-# Price Prediction Network
-P_num_layers: 4                # this is the 'Deep' part of deep learning
-P_max_nuerons: 1024            # this is complexity
-
-# Q Network
-Q_num_layers: 4                # this is the 'Deep' part of deep learning
-Q_max_nuerons: 1024            # this is complexity
+nicehash_api_id: 'YOUR INFO HERE'
+nicehash_api: 'YOUR INFO HERE'
+nicehash_btc_addr: 'YOUR INFO HERE'

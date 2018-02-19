@@ -8,7 +8,7 @@ __author__ = "Eric Petersen @Ruckusist"
 __copyright__ = "Copyright 2018, The Alpha Griffin Project"
 __credits__ = ["Eric Petersen", "Shawn Wilson", "@alphagriffin"]
 __license__ = "***"
-__version__ = "0.0.2"
+__version__ = "0.0.5"
 __maintainer__ = "Eric Petersen"
 __email__ = "ruckusist@alphagriffin.com"
 __status__ = "Beta"
@@ -34,9 +34,8 @@ class Q_Trader(object):
     This handles all the flowing tensors.
     """
 
-    def __init__(self, options, dataset):
+    def __init__(self, options):
         self.options = options
-        self.dataset = dataset
         class RuntimeStats(): pass;  # dummy stats holder
 
         self.stats = RuntimeStats()
@@ -49,39 +48,49 @@ class Q_Trader(object):
         self.epsilon = .09
         self.gamma = .09
         self.replay_size = 500
-        self.state_dim = self.dataset.shape[1]
+        self.state_dim1 = None
+        self.state_dim2 = None
         self.action_dim = 3
         self.stats.g_step = 0
         self.batch_size = 32
         self.num_gpus = self.options.num_gpus
 
-        # Start the Setup
-        # 4 GPU
-        # self.setup()
-        # 1 GPU
+    def reset_que(self):
+        self.replay_buffer.clear()
+        return True
+
+    def set_state_dim(self, dim1, dim2, dim3, dim4):
+        self.state_dim1 = dim1
+        self.state_dim2 = dim2
+        self.state_dim3 = dim3
+        self.state_dim4 = dim4
+        pass
+
+    def preRun(self):
         self.setup_proper()
-        # GPU SUPPORT IS BACK!!! 
+        # GPU SUPPORT IS BACK!!!
         gpu_config = tf.GPUOptions(per_process_gpu_memory_fraction=0.3333)
         try:
             self.session = tf.InteractiveSession(config=tf.ConfigProto(
                     # allow_soft_placement=True,
                     gpu_options=gpu_config
                    ))
-            print('Started Session', end='\r')
+            print('Started Session')
         except:
-            print('Cant Start a session... Failing.', end='\r')
+            print('Cant Start a session... Failing.')
+
         """
         WARNING! ACHTUNG!
         ALWAYS INIT GLOBALS TO ZERO WITH initializer...
         THEN LOAD A PREVIOUSLY SAVED STATE...
         """
         self.session.run(tf.global_variables_initializer())
-        print('Initialized globals successfully', end='\r')
+        print('Initialized globals successfully')
         # AFTER SETUP RUN SAVE OR LOAD
         self.saver = tf.train.Saver()
-        self.running = True
         self.save_or_load()
-        print('finished model init', end='\r')
+        self.running = True
+        print('finished model init')
 
     @property
     def IsRunning(self):
@@ -134,6 +143,13 @@ class Q_Trader(object):
                 # Q value layer
                 final = tf.matmul(hidden_4, W4) + B4
                 c.append(final)
+        """BottleNeck
+        try:
+            with tf.device('/gpu:1'):
+                self.Q_value = tf.add_n(c)
+        except:
+            self.Q_value = tf.add_n(c)
+        """
         self.Q_value = tf.add_n(c)
         print('passed gpus setup')
         # Output variables
@@ -141,7 +157,8 @@ class Q_Trader(object):
         self.y_input = tf.placeholder('float', [None])
 
         # Training Method
-        Q_action = tf.reduce_sum(tf.multiply(self.Q_value, self.action_input), reduction_indices=1)
+        Q_action = tf.reduce_sum(tf.multiply(
+            self.Q_value, self.action_input), reduction_indices=1)
         self.cost = tf.reduce_mean(tf.square(self.y_input - Q_action))
         self.optimizer = tf.train.AdamOptimizer(self.lr).minimize(
             self.cost, global_step=self.global_step, colocate_gradients_with_ops=True)
@@ -160,75 +177,37 @@ class Q_Trader(object):
                                         name="Learn_decay")
 
         # input layer
-        self.state_input = tf.placeholder('float', [None, self.state_dim])
+        self.state_input1 = tf.placeholder('float', [None, self.state_dim1])
+        self.state_input2 = tf.placeholder('float', [None, self.state_dim2])
+        self.state_input3 = tf.placeholder('float', [None, self.state_dim3])
+        self.state_input4 = tf.placeholder('float', [None, self.state_dim4])
         # self.state_input = tf.placeholder('float', [None, 60, 9])
 
-
-        # 2018 way to init some fucking w and b
-        sigma = 1
+        sigma = 1.0
         weight_initializer = tf.variance_scaling_initializer(mode="fan_avg", distribution="uniform", scale=sigma)
         bias_initializer = tf.zeros_initializer()
 
         c = []
-        # for i in range(1):
-        """ There might be too many layers going on here for this ...
-        with tf.device('/gpu:3'):
-            # TODO: make this iteritive
-            # TODO: make the input and output dimensions fit the dataset automatic
-            W0 = tf.Variable(weight_initializer([40, 1024]))
-            B0 = tf.Variable(bias_initializer([1024]))
-            W1 = tf.Variable(weight_initializer([1024, 512]))
-            B1 = tf.Variable(bias_initializer([512]))
-            W2 = tf.Variable(weight_initializer([512, 256]))
-            B2 = tf.Variable(bias_initializer([256]))
-            W3 = tf.Variable(weight_initializer([256, 128]))
-            B3 = tf.Variable(bias_initializer([128]))
-            W4 = tf.Variable(weight_initializer([128, 3]))
-            B4 = tf.Variable(bias_initializer([3]))
+        print('starting gpus setup')
+        for i, e in enumerate(zip(
+                [self.state_dim1,self.state_dim2,self.state_dim3,self.state_dim4],
+                [self.state_input1, self.state_input2, self.state_input3, self.state_input4])
+                ):
+            with tf.device('/gpu:{}'.format(i)):
+                W0 = tf.Variable(weight_initializer([e[0], 256]))
+                B0 = tf.Variable(bias_initializer([256]))
+                W1 = tf.Variable(weight_initializer([256, 128]))
+                B1 = tf.Variable(bias_initializer([128]))
+                W2 = tf.Variable(weight_initializer([128, 3]))
+                B2 = tf.Variable(bias_initializer([3]))
 
-            # Hidden layer
-            hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input, W0), B0))
-            hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
-            hidden_3 = tf.nn.relu(tf.add(tf.matmul(hidden_2, W2), B2))
-            hidden_4 = tf.nn.relu(tf.add(tf.matmul(hidden_3, W3), B3))
+                hidden_1 = tf.nn.relu(tf.add(tf.matmul(e[1], W0), B0))
+                hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
+                # Q value layer
+                final = tf.matmul(hidden_2, W2) + B2
+                c.append(final)
 
-            # Q value layer
-            final = tf.matmul(hidden_4, W4) + B4
-            # c.append(final)
-        # self.Q_value = tf.add_n(c)
-        self.Q_value = final
-        """
-        
-        if num_gpus > 0:
-            print('starting gpus setup', end='\r')
-            for i in range(num_gpus):
-                with tf.device('/gpu:{}'.format(i)):
-                    W0 = tf.Variable(weight_initializer([self.state_dim, 256]))
-                    B0 = tf.Variable(bias_initializer([256]))
-                    W1 = tf.Variable(weight_initializer([256, 128]))
-                    B1 = tf.Variable(bias_initializer([128]))
-                    W2 = tf.Variable(weight_initializer([128, 3]))
-                    B2 = tf.Variable(bias_initializer([3]))
-
-                    hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input, W0), B0))
-                    hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
-                    # Q value layer
-                    final = tf.matmul(hidden_2, W2) + B2
-                    c.append(final)
-            self.Q_value = tf.add_n(c)
-        else:  # No Gpus
-            print("setup with no gpus", end='\r')
-            W0 = tf.Variable(weight_initializer([self.state_dim, 256]))
-            B0 = tf.Variable(bias_initializer([256]))
-            W1 = tf.Variable(weight_initializer([256, 128]))
-            B1 = tf.Variable(bias_initializer([128]))
-            W2 = tf.Variable(weight_initializer([128, 3]))
-            B2 = tf.Variable(bias_initializer([3]))
-
-            hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input, W0), B0))
-            hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
-            # Q value layer
-            self.Q_value = tf.matmul(hidden_2, W2) + B2
+        self.Q_value = tf.add_n(c)
 
         # Output variables
         self.action_input = tf.placeholder('float', [None, 3])
@@ -238,16 +217,19 @@ class Q_Trader(object):
         Q_action = tf.reduce_sum(tf.multiply(self.Q_value, self.action_input), reduction_indices=1)
         self.cost = tf.reduce_mean(tf.square(self.y_input - Q_action))
         self.optimizer = tf.train.AdamOptimizer(self.lr).minimize(
-            self.cost, 
-            global_step=self.global_step, 
+            self.cost,
+            global_step=self.global_step,
             colocate_gradients_with_ops=True
             )
-        print('finished Model setup', end='\r')
+        print('finished Model setup')
         pass
 
     def egreedy_action(self, state):
         Q_value = self.Q_value.eval(feed_dict={
-            self.state_input: [state]
+            self.state_input1: [state[0]],
+            self.state_input2: [state[1]],
+            self.state_input3: [state[2]],
+            self.state_input4: [state[3]],
         })
         Q_value = Q_value[0]
 
@@ -271,9 +253,9 @@ class Q_Trader(object):
         return np.argmax(Q_value)
 
     def save_or_load(self):
-        print('trying to save or load', end='\r')
+        # print('trying to save or load')
         folder = os.path.join(os.getcwd(), 'data', 'models', 'Q_Network')
-        filename = '/Q_Trader_Network'
+        filename = '\\Q_Trader_Network'
         if self.running:  # SAVE
             saver = self.saver
             saver.save(
@@ -281,19 +263,22 @@ class Q_Trader(object):
                 folder + filename,
                 global_step=self.stats.g_step
             )
+            print('SAVED!')
             return
         else:  # LOAD
             check_point = tf.train.get_checkpoint_state(folder)
             if check_point and check_point.model_checkpoint_path:
                 self.saver.restore(self.session, check_point.model_checkpoint_path)
-                print('Loaded Previously Saved State. Get current worked number of steps.', end='\r')
+                # get global steps
+                steps = self.session.run(self.global_step)
+                print('Loaded Previously Saved State. Model Previous Steps: {}.'.format(steps))
                 return
             else:
                 print('No Previously Saved State Found.')
                 #print('No Previously Saved State. New model will be saved to:\n\t{}'.format(
                 #   folder + filename
                 #), end='\r')
-        print('finished save or load', end='\r')
+        print('finished save or load')
         return
 
     def getLoss(self):
@@ -302,50 +287,56 @@ class Q_Trader(object):
         """
         return self.stats.cost
 
-    def train(self, state, action, reward, state_, done):
+    def train(self, state, action, reward, state_):
         self.time_step += 1
         one_hot_action = np.zeros(self.action_dim)
         one_hot_action[action] = 1
-        self.replay_buffer.append((state, one_hot_action, reward, state_, done))
+        self.replay_buffer.append((state[0], state[1],state[2],state[3], one_hot_action, reward, state_[0], state_[1],state_[2],state_[3]))
         if len(self.replay_buffer) > self.replay_size:  # this is a rolling window
             self.replay_buffer.popleft()
-        if len(self.replay_buffer) > 100:  # after 100 step ,pre  train
+        if len(self.replay_buffer) > 64:  # after 100 step ,pre  train
             self.training()
+        else:
+            # print('PreBuffering... {}'.format(len(self.replay_buffer)), end='\r')
+            pass
 
     def training(self):
-        # get random  sample from replay buffer
+        # get random sample from replay buffer
         minibatch = random.sample(self.replay_buffer, self.batch_size)
-        state_batch = [data[0] for data in minibatch]
-        action_batch = [data[1] for data in minibatch]
-        reward_batch = [data[2] for data in minibatch]
-        next_state_batch = [data[3] for data in minibatch]
+        state_batch1 = [data[0] for data in minibatch]
+        state_batch2 = [data[1] for data in minibatch]
+        state_batch3 = [data[2] for data in minibatch]
+        state_batch4 = [data[3] for data in minibatch]
+        action_batch = [data[4] for data in minibatch]
+        reward_batch = [data[5] for data in minibatch]
+        next_state_batch1 = [data[6] for data in minibatch]
+        next_state_batch2 = [data[7] for data in minibatch]
+        next_state_batch3 = [data[8] for data in minibatch]
+        next_state_batch4 = [data[9] for data in minibatch]
 
         # calcuate Q
         Y_batch = []
         next_Q = self.Q_value.eval(feed_dict={
-            self.state_input: next_state_batch
+            self.state_input1: next_state_batch1,
+            self.state_input2: next_state_batch2,
+            self.state_input3: next_state_batch3,
+            self.state_input4: next_state_batch4
         })
 
         # Build a batch
         for i in range(self.batch_size):
-            done = minibatch[i][4]
-        if done:
-            Y_batch.append(reward_batch[i])
-        else:
-            Y_batch.append(reward_batch[i] + self.gamma * np.max(next_Q[i]))
+            if i == self.batch_size - 1:
+                Y_batch.append(reward_batch[i])
+            else:
+                Y_batch.append(reward_batch[i] + self.gamma * np.max(next_Q[i]))
 
-        # Train on that built Batch. Boom.
-        """ EXAMPLE
-        self.optimizer.run(feed_dict ={
-        self.y_input:Y_bach,
-        self.action_input:action_bach,
-        self.state_input:state_bach
-        })
-            """
         FEED = {
             self.y_input: Y_batch,
             self.action_input: action_batch,
-            self.state_input: state_batch
+            self.state_input1: state_batch1,
+            self.state_input2: state_batch2,
+            self.state_input3: state_batch3,
+            self.state_input4: state_batch4,
         }
 
 
@@ -356,4 +347,24 @@ class Q_Trader(object):
                 self.global_step],
                 feed_dict=FEED
         )
-    pass
+
+    def get_reward(self, action, state):
+        trends = []
+        for index, state_ in enumerate(state):
+            x = state_.mean()
+            d = x.mean()
+            trends.append(d)
+
+        trend = np.array(trends, dtype=np.float64).sum()
+        # print('trend: {:.3f}'.format(trend))
+        right_answer = 2  # do nothing... is usually the right answer
+        if trend > 1:
+            right_answer = 0  # buy if going up
+        elif trend < -1:
+            right_answer = 1  # sell if going down
+
+        if action == right_answer:
+            reward = 1
+        else: reward = -1
+        # print('action {}, right {}, reward {}'.format(action, right_answer, reward))
+        return reward

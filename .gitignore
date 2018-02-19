@@ -25,4 +25,8 @@ notebooks/.ipynb_checkpoints/*
 
 
 ### REMOVE ALL THE GENERATED SAVE DATA
-*.swp
+*.csv
+
+### REMOVE MY SCRATCH PAPER
+scratch_paper
+ag/bittensor/ai/old

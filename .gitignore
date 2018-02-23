@@ -20,12 +20,13 @@ __pycache__
 ### REMOVE ALL THE GENERATED SAVE DATA
 saved_notebooks/*
 html/*
-data/*
+data/datasets/*
+data/models/*
 notebooks/.ipynb_checkpoints/*
 
 
 ### REMOVE ALL THE GENERATED SAVE DATA
-*.csv
+# *.csv
 
 ### REMOVE MY SCRATCH PAPER
 scratch_paper

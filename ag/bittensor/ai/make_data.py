@@ -27,7 +27,7 @@ class MakeData(object):
     Alphagriffin.com
     """
 
-    def __init__(self, options):
+    def __init__(self, options=None):
         """Use the options for a proper setup."""
         self.options = options
         self.file_loc = os.path.join(os.getcwd(), 'data', 'files')
@@ -75,13 +75,17 @@ class MakeData(object):
 
     @property
     def next_filename(self):
-        filename = next(self._next_filename)
-        self.pair = filename
+        try:
+            filename = next(self._next_filename)
+            self.pair = filename
+        except:
+            self.next_filename = self.file_loc
+            filename = None
         return filename
 
     @next_filename.setter
     def next_filename(self, value):
-        self._next_filename = cycle(os.listdir(value))
+        self._next_filename = iter(os.listdir(value))
 
     @property
     def dataframe(self):
@@ -107,10 +111,10 @@ class MakeData(object):
             df.len = len(df)
             return df
 
-        seven_min_change = unzero(dataframe.pct_change(periods=7))
-        twelve_min_change = unzero(dataframe.pct_change(periods=12))
-        twenty_min_change = unzero(dataframe.pct_change(periods=20))
-        forty_min_change = unzero(dataframe.pct_change(periods=40))
+        seven_min_change = unzero(dataframe.pct_change(  periods = 7))
+        twelve_min_change = unzero(dataframe.pct_change( periods = 12))
+        twenty_min_change = unzero(dataframe.pct_change( periods = 20))
+        forty_min_change = unzero(dataframe.pct_change(  periods = 40))
         return [dataframe,
                 seven_min_change,
                 twelve_min_change,

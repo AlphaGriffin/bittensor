@@ -79,3 +79,19 @@ suprnovaETN_id: 'YOUR INFO HERE'
 nicehash_api_id: 'YOUR INFO HERE'
 nicehash_api: 'YOUR INFO HERE'
 nicehash_btc_addr: 'YOUR INFO HERE'
+
+# ///////////////////////////////////////////////
+# exchanges_to_trade: 'bittrex', 'poloniex'
+# Compound your own list of exchange that you want
+# to work with, or that you have api keys to trade
+# with. spell it the same way as its spelled in your
+# api key and secret syntax. then you can use stuff
+# that isnt given in the example.
+# ///////////////////////////////////////////////
+exchanges_to_trade: [ 'bittrex',
+                      'poloniex',
+                      'cryptopia',
+                      # 'ccex',
+                      # 'binance',
+                      'hitbtc'
+                      ]

@@ -2,6 +2,10 @@
 """
 Bittensor.
 by: AlphaGriffin
+
+
+
+## TODO:: add btc_volume and coin_volume its current vol times last
 """
 import os, time
 from timeit import default_timer as timer

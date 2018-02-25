@@ -40,6 +40,7 @@ class Bittensor(object):
         self.options = options
         self.model = Q_Trader(options)
         self.datasmith = make_data.MakeData(options)
+        self.game = GameEngine(options)
 
         # training Options
         self.sample_size = 80

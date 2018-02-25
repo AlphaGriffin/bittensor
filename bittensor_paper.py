@@ -25,6 +25,7 @@ import pandas as pd
 import ag.bittensor.utils.options as options
 import ag.bittensor.ai.make_data as make_data
 from ag.bittensor.ai.AI import Q_Trader
+from ag.bittensor.game.engine import GameEngine
 
 
 class Bittensor(object):

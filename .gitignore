@@ -23,7 +23,7 @@ html/*
 data/datasets/*
 data/models/*
 notebooks/.ipynb_checkpoints/*
-
+.ipynb_checkpoints
 
 ### REMOVE ALL THE GENERATED SAVE DATA
 # *.csv

@@ -8,7 +8,7 @@ __author__ = "Eric Petersen @Ruckusist"
 __copyright__ = "Copyright 2018, The Alpha Griffin Project"
 __credits__ = ["Eric Petersen", "Shawn Wilson", "@alphagriffin"]
 __license__ = "***"
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __maintainer__ = "Eric Petersen"
 __email__ = "ruckusist@alphagriffin.com"
 __status__ = "Beta"
@@ -37,12 +37,12 @@ class MakeData(object):
                 ]
 
         self._dataframe = None
+        self._candleframe = None
         self._pair = None
         self.max_time_frame = 75
         self._next_filename = None
 
         self.next_filename = self.file_loc
-
 
     def main(self):
         sample = self.random_filename
@@ -88,6 +88,16 @@ class MakeData(object):
         self._next_filename = iter(os.listdir(value))
 
     @property
+    def candles(self):
+        return self._candleframe
+
+    @candles.setter
+    def candles(self, value):
+        # maybe this could take a tuple of (df, periods)
+        # but that doesnt sound intuitive.. ???
+        self._candleframe = self.make_candles(value)
+
+    @property
     def dataframe(self):
         return self._dataframe
 
@@ -97,7 +107,14 @@ class MakeData(object):
                 os.path.join(self.file_loc, value),
                 names=self.columns
         )
-
+        self._dataframe = self.fix_time(self._dataframe)
+        self._dataframe.set_index(
+            pd.DatetimeIndex(
+                self._dataframe['timestamp']),
+            inplace=True)
+        self._candleframe = self.make_candles(self.dataframe)
+        self._dataframe.pair = self._candleframe.pair = value[:-4]
+        
     def make_normal(self, dataframe=None):
         if dataframe is None:
             dataframe = self.dataframe
@@ -135,6 +152,32 @@ class MakeData(object):
             X6 = np.append([X1, X2, X3], X5)  # remove x4
             inputs.append(X6)
         return inputs
+
+    def fix_time(self, dataframe=None):
+        if dataframe is None:
+            dataframe = self.dataframe
+        time = dataframe.pop('timestamp')
+        transform = time.apply(lambda x: 
+                                datetime.datetime.fromtimestamp(
+                                        x/1000
+                                    ).strftime('%Y-%m-%d %H:%M:%S'))
+        dataframe = dataframe.join(transform, how='inner')
+        return dataframe
+
+    def make_candles(self, df, column='last', period='5T'):
+        '''Slice the data for any candle periods'''
+        candles = pd.DataFrame()
+        candles['Open'] = df[column].resample(period).first().values
+        candles['High'] = df[column].resample(period).max().values
+        candles['Low'] = df[column].resample(period).min().values
+        candles['Close'] = df[column].resample(period).last().values
+        candles['timestamp'] = pd.DatetimeIndex( 
+            df['timestamp'][:len(candles)].values
+            )
+        candles.set_index('timestamp', inplace=True)
+        return candles
+
+        
 
 def main():
     """Loads Options ahead of the app"""

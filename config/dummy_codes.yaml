@@ -19,79 +19,19 @@ filler: ' '
 spacer: '~|#|~'
 blocker: '    '
 
-#//////| Slack Decider |\\\\\\#
-# OAuth Access Token
-slack_decider_api: 'YOUR INFO HERE'
-# Bot User OAuth Access Token
-slack_decider_secret: 'YOUR INFO HERE'
-
-#//////| SpreadSheets |\\\\\\#
+#//////| SpreadSheets and Storage |\\\\\\#
 google_api: 'YOUR INFO HERE'
 google_client_id: 'YOUR INFO HERE'
 google_client_secret: 'YOUR INFO HERE'
 
 #//////| EXCHANGES |\\\\\\#
-# Binance.com
-binance_api: 'YOUR INFO HERE'
-binance_secret: 'YOUR INFO HERE'
-
-# Bitmex.com
-bitmex_api: 'YOUR INFO HERE'
-bitmex_secret: 'YOUR INFO HERE'
-
-# Hitbtc.com
-hitbtc_api: 'YOUR INFO HERE'
-hitbtc_secret: 'YOUR INFO HERE'
-
-# livecoin.com
-livecoin_api_url: 'https://api.livecoin.net'
-livecoin_api: 'YOUR INFO HERE'
-livecoin_secret: 'YOUR INFO HERE'
-
 # Poloniex.com
 poloniex_api: 'YOUR INFO HERE'
 poloniex_secret: 'YOUR INFO HERE'
-
-# Cryptopia.com
-cryptopia_api: 'YOUR INFO HERE'
-cryptopia_secret: 'YOUR INFO HERE'
-
-# C-cex.com
-ccex_api: 'YOUR INFO HERE'
-ccex_secret: 'YOUR INFO HERE'
 
 # Bittrex.com
 bittrex_2fac: 'YOUR INFO HERE'
 bittrex_api: 'YOUR INFO HERE'
 bittrex_secret: 'YOUR INFO HERE'
 
-
-#//////| MINING POOLS |\\\\\\#
-# Blockfactory.com
-blockfactory_api: 'YOUR INFO HERE'
-
-# suprnova.cc
-suprnovaETN_url: 'YOUR INFO HERE'
-suprnovaETN_api: 'YOUR INFO HERE'
-suprnovaETN_id: 'YOUR INFO HERE'
-
-# NICEHASH.com
-nicehash_api_id: 'YOUR INFO HERE'
-nicehash_api: 'YOUR INFO HERE'
-nicehash_btc_addr: 'YOUR INFO HERE'
-
-# ///////////////////////////////////////////////
-# exchanges_to_trade: 'bittrex', 'poloniex'
-# Compound your own list of exchange that you want
-# to work with, or that you have api keys to trade
-# with. spell it the same way as its spelled in your
-# api key and secret syntax. then you can use stuff
-# that isnt given in the example.
-# ///////////////////////////////////////////////
-exchanges_to_trade: [ 'bittrex',
-                      'poloniex',
-                      'cryptopia',
-                      # 'ccex',
-                      # 'binance',
-                      'hitbtc'
-                      ]
+exchanges: 'bittrex'

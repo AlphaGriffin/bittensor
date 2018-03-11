@@ -3,18 +3,23 @@
 Bittensor TA-LIB.
 by: AlphaGriffin
 
-@ SOURCE Inspiration
-:
+@ SOURCE Inspiration:
+    TA LIB basics... this came in a very pandas2 kind of way.
     https://www.quantopian.com/posts/technical-analysis-indicators-without-talib-code
     @author: Bruno Franca
     @author: Peter Bakker
+
+@ SOURCE Inspiration:
+    Analysis comes from this source.
+    https://www.quantinsti.com/blog/build-technical-indicators-in-python/
+    By Milind Paradkar :: https://www.linkedin.com/in/milind-paradkar-b37292107/
 """
 
 __author__ = "Eric Petersen @Ruckusist"
 __copyright__ = "Copyright 2018, The Alpha Griffin Project"
 __credits__ = ["Eric Petersen", "Shawn Wilson", "@alphagriffin"]
 __license__ = "***"
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __maintainer__ = "Eric Petersen"
 __email__ = "ruckusist@alphagriffin.com"
 __status__ = "Beta"
@@ -24,8 +29,19 @@ import pandas as pd
 import math as m
 
 class TALib(object):
-    def __init__(self):
-        self.test = 0
+    def __init__(self, options=None):
+        self.options = options
+        self.available = {
+            'Moving Average': self.MA,
+            'Bollinger Bands': self.BBANDS,
+            'Standard Deviation': self.STD,
+            'Exp Moving Average': self.EMA,
+            'Momentum': self.MOM,
+            'Rate of Change': self.ROC,
+            'Average True Range': self.ATR,
+            'Commodity Channel Index': self.CCI,
+            'Realitive Strength Index': self.RSI
+        }
 
     def main(self):
         pass
@@ -38,7 +54,7 @@ class TALib(object):
         df.len = len(df)
         return df
 
-    def MA(self, df, period=12, column='last'):
+    def MA(self, df, period=12, column='Close'):
         """BASIC MOVING AVERAGE"""
         MA = pd.Series(
                 self.unzero(  # unzero seems to be useless after join
@@ -47,68 +63,127 @@ class TALib(object):
                         ).mean()
                 ),
             name='MA_{}_{}'.format(column, period))
-        df = df.join(MA)
-        return MA, df
+        del df
+        # df = df.join(MA)
+        return MA  # , df
 
-    def EMA(self, df, period=12, column='last'):
+    def STD(self, df, period=12, column='Close'):
+        """BASIC MOVING AVERAGE"""
+        STD = pd.Series(
+                self.unzero(  # unzero seems to be useless after join
+                    df[column].rolling(
+                        window=period
+                        ).std()
+                ),
+            name='STD_{}_{}'.format(column, period))
+        del df
+        # df = df.join(MA)
+        return STD  # , df
+
+    def EMA(self, df, period=12, column='Close'):
         """ EWM | Expontentially Weighted Moving Average
         looks like this is only working with the mean() call after it
         """
         EMA = pd.Series(
                 df[column].ewm(span=period, min_periods=period-1).mean(),
                 name='EMA_{}_{}'.format(column, period))
-        df = df.join(EMA)
-        return EMA, df
+        del df
+        # df = df.join(EMA)
+        return EMA  # , df
 
-    def MOM(self, df, period=12, column='last'):
+    def MOM(self, df, period=12, column='Close'):
         """Momentum, or rolling Diff..."""
         MOM = pd.Series(
             df[column].diff(period),
             name="Momentum_{}_{}".format(column,period)
         )
-        df = df.join(MOM)
-        return MOM, df
+        del df
+        # df = df.join(MOM)
+        return MOM  # , df
 
-    def ROC(self, df, period=12, column='last'):
+    def ROC(self, df, period=12, column='Close'):
         """ Rate of Change
-        Momentum over Last price.
+        Momentum over Close price.
         """
-        M, _ = self.MOM(df, period+1, column)
+        M = self.MOM(df, period+1, column)
         L = df[column].shift(period - 1)
 
         ROC = pd.Series(
             M / L,
             name="RateOfChange_{}_{}".format(column,period)
         )
-        df = df.join(ROC)
-        return ROC, df
+        del df
+        # df = df.join(ROC)
+        return ROC  # , df
 
+    def ATR(self, df, period=12):
+        TR_l = [0]
+        for i in range(len(df)-1):
+            TR = max(
+                df['High'].iloc[i + 1],
+                df['Close'].iloc[i] - df['Low'].iloc[i + 1],
+                df['Close'].iloc[i]
+            )
+            TR_l.append(TR)
+        TR_s = pd.Series(TR_l)
+        ATR = pd.Series(TR_s.ewm(span=period, min_periods=period,adjust=True,ignore_na=True).mean(),
+                        name='TrueRange_{}'.format(period))
+        # ATR = ATR.reindex(df.index)
+        return ATR
 
+    def BBANDS(self, df, period=12):
+        MA = self.MA(df, period, 'Close')
+        STD = self.STD(df, period, 'Close')
 
-#Average True Range
-def ATR(df, n):
-    i = 0
-    TR_l = [0]
-    while i < df.index[-1]:
-        TR = max(df.get_value(i + 1, 'High'), df.get_value(i, 'Close')) - min(df.get_value(i + 1, 'Low'), df.get_value(i, 'Close'))
-        TR_l.append(TR)
-        i = i + 1
-    TR_s = pd.Series(TR_l)
-    ATR = pd.Series(pd.ewma(TR_s, span = n, min_periods = n), name = 'ATR_' + str(n))
-    df = df.join(ATR)
-    return df
+        b1 = MA + (2*STD)
+        B1 = pd.Series(b1, name='BollingerB1_{}'.format(period))
+        b2 =  MA - (2*STD)
+        B2 = pd.Series(b2, name='BollingerB2_{}'.format(period))
+        return (B1, MA, B2)
 
-#Bollinger Bands
-def BBANDS(df, n):
-    MA = pd.Series(pd.rolling_mean(df['Close'], n))
-    MSD = pd.Series(pd.rolling_std(df['Close'], n))
-    b1 = 4 * MSD / MA
-    B1 = pd.Series(b1, name = 'BollingerB_' + str(n))
-    df = df.join(B1)
-    b2 = (df['Close'] - MA + 2 * MSD) / (4 * MSD)
-    B2 = pd.Series(b2, name = 'Bollinger%b_' + str(n))
-    df = df.join(B2)
-    return df
+    def CCI(self, df, period=12):
+        # wtf is a PP??
+        PP = pd.Series((df['High'] + df['Low'] + df['Close']) / 3)
+        MA_TP = PP.rolling(window=period, center=False).mean()
+        x = PP - MA_TP
+        ST_TP = PP.rolling(window=period, center=False).std()
+        change_ST = ST_TP * 0.015
+        CCI = pd.Series(x / change_ST, name='CCI_{}'.format(period))
+
+        analysis = None
+        analysis = 'overbought' if CCI[-1] > 100 else analysis
+        analysis = 'oversold' if CCI[-1] < -100 else analysis
+        return CCI  #, analysis
+
+    def RSI(self, df, period=12):
+        Up_I = []
+        Do_I = []
+        for i in range(len(df) - 1):
+            Up_M = df['High'].iloc[i + 1] - df['High'].iloc[i]
+            Do_M = df['Low'].iloc[i + 1] - df['Low'].iloc[i]
+            if Up_M > Do_M and Up_M > 0:
+                Up_D = Up_M
+            else:
+                Up_D = 0
+            Up_I.append(Up_D)
+
+            if Do_M > Up_M and Do_M > 0:
+                Do_D = Do_M
+            else:
+                Do_D = 0
+            Do_I.append(Do_D)
+        UPI = pd.Series(Up_I)
+        DOI = pd.Series(Do_I)
+        PosDI = pd.Series(UPI.ewm(span=period, min_periods=period-1).mean())
+        NegDI = pd.Series(DOI.ewm(span=period, min_periods=period-1).mean())
+        RSI = pd.Series(PosDI / (PosDI + NegDI), name='RSI_{}'.format(period))
+
+        analysis = None
+        analysis = 'overbought' if RSI.iloc[-1] > 0.7 else analysis
+        analysis = 'oversold' if RSI.iloc[-1] < 0.3 else analysis
+
+        return RSI  #, analysis
+
 
 #Pivot Points, Supports and Resistances
 def PPSR(df):
@@ -243,31 +318,6 @@ def KST(df, r1, r2, r3, r4, n1, n2, n3, n4):
     df = df.join(KST)
     return df
 
-#Relative Strength Index
-def RSI(df, n):
-    i = 0
-    UpI = [0]
-    DoI = [0]
-    while i + 1 <= df.index[-1]:
-        UpMove = df.get_value(i + 1, 'High') - df.get_value(i, 'High')
-        DoMove = df.get_value(i, 'Low') - df.get_value(i + 1, 'Low')
-        if UpMove > DoMove and UpMove > 0:
-            UpD = UpMove
-        else: UpD = 0
-        UpI.append(UpD)
-        if DoMove > UpMove and DoMove > 0:
-            DoD = DoMove
-        else: DoD = 0
-        DoI.append(DoD)
-        i = i + 1
-    UpI = pd.Series(UpI)
-    DoI = pd.Series(DoI)
-    PosDI = pd.Series(pd.ewma(UpI, span = n, min_periods = n - 1))
-    NegDI = pd.Series(pd.ewma(DoI, span = n, min_periods = n - 1))
-    RSI = pd.Series(PosDI / (PosDI + NegDI), name = 'RSI_' + str(n))
-    df = df.join(RSI)
-    return df
-
 #True Strength Index
 def TSI(df, r, s):
     M = pd.Series(df['Close'].diff(1))
@@ -345,13 +395,6 @@ def EOM(df, n):
     df = df.join(Eom_ma)
     return df
 
-#Commodity Channel Index
-def CCI(df, n):
-    PP = (df['High'] + df['Low'] + df['Close']) / 3
-    CCI = pd.Series((PP - pd.rolling_mean(PP, n)) / pd.rolling_std(PP, n), name = 'CCI_' + str(n))
-    df = df.join(CCI)
-    return df
-
 #Coppock Curve
 def COPP(df, n):
     M = df['Close'].diff(int(n * 11 / 10) - 1)
@@ -404,9 +447,4 @@ def DONCH(df, n):
     DonCh = pd.Series(DC_l, name = 'Donchian_' + str(n))
     DonCh = DonCh.shift(n - 1)
     df = df.join(DonCh)
-    return df
-
-#Standard Deviation
-def STDDEV(df, n):
-    df = df.join(pd.Series(pd.rolling_std(df['Close'], n), name = 'STD_' + str(n)))
     return df

@@ -8,7 +8,7 @@ __author__ = "Eric Petersen @Ruckusist"
 __copyright__ = "Copyright 2018, The Alpha Griffin Project"
 __credits__ = ["Eric Petersen", "Shawn Wilson", "@alphagriffin"]
 __license__ = "***"
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 __maintainer__ = "Eric Petersen"
 __email__ = "ruckusist@alphagriffin.com"
 __status__ = "Beta"
@@ -59,11 +59,8 @@ class Q_Trader(object):
         self.replay_buffer.clear()
         return True
 
-    def set_state_dim(self, dim1, dim2, dim3, dim4):
+    def set_state_dim(self, dim1):
         self.state_dim1 = dim1
-        self.state_dim2 = dim2
-        self.state_dim3 = dim3
-        self.state_dim4 = dim4
         pass
 
     def preRun(self):
@@ -71,13 +68,17 @@ class Q_Trader(object):
         # GPU SUPPORT IS BACK!!!
         gpu_config = tf.GPUOptions(per_process_gpu_memory_fraction=0.3333)
         try:
-            self.session = tf.InteractiveSession(config=tf.ConfigProto(
-                    # allow_soft_placement=True,
+            self.session = tf.InteractiveSession(
+                config=tf.ConfigProto(
+                    allow_soft_placement=True,
                     gpu_options=gpu_config
-                   ))
+                   ),
+                # allow_soft_placement=True
+            )
             print('Started Session')
         except:
             print('Cant Start a session... Failing.')
+            sys.exit('Failing super hard')
 
         """
         WARNING! ACHTUNG!
@@ -178,17 +179,18 @@ class Q_Trader(object):
 
         # input layer
         self.state_input1 = tf.placeholder('float', [None, self.state_dim1])
-        self.state_input2 = tf.placeholder('float', [None, self.state_dim2])
-        self.state_input3 = tf.placeholder('float', [None, self.state_dim3])
-        self.state_input4 = tf.placeholder('float', [None, self.state_dim4])
+        # self.state_input2 = tf.placeholder('float', [None, self.state_dim2])
+        # self.state_input3 = tf.placeholder('float', [None, self.state_dim3])
+        # self.state_input4 = tf.placeholder('float', [None, self.state_dim4])
         # self.state_input = tf.placeholder('float', [None, 60, 9])
 
         sigma = 1.0
         weight_initializer = tf.variance_scaling_initializer(mode="fan_avg", distribution="uniform", scale=sigma)
         bias_initializer = tf.zeros_initializer()
-
+        """ DEPRICATED !
+        # THIS was a brilliant setup and im keeping it here for reference
         c = []
-        print('starting gpus setup')
+        print('starting gpus setup')       
         for i, e in enumerate(zip(
                 [self.state_dim1,self.state_dim2,self.state_dim3,self.state_dim4],
                 [self.state_input1, self.state_input2, self.state_input3, self.state_input4])
@@ -208,6 +210,21 @@ class Q_Trader(object):
                 c.append(final)
 
         self.Q_value = tf.add_n(c)
+        """
+        ### //// TEST BASIC SYSTEM!
+        W0 = tf.Variable(weight_initializer([self.state_dim1, 256]))
+        B0 = tf.Variable(bias_initializer([256]))
+        W1 = tf.Variable(weight_initializer([256, 128]))
+        B1 = tf.Variable(bias_initializer([128]))
+        W2 = tf.Variable(weight_initializer([128, 3]))
+        B2 = tf.Variable(bias_initializer([3]))
+
+        hidden_1 = tf.nn.relu(tf.add(tf.matmul(self.state_input1, W0), B0))
+        hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W1), B1))
+
+        final = tf.matmul(hidden_2, W2) + B2
+        ### ///// END TEST BASIC SETUP
+        self.Q_value = final
 
         # Output variables
         self.action_input = tf.placeholder('float', [None, 3])
@@ -227,9 +244,9 @@ class Q_Trader(object):
     def egreedy_action(self, state):
         Q_value = self.Q_value.eval(feed_dict={
             self.state_input1: [state[0]],
-            self.state_input2: [state[1]],
-            self.state_input3: [state[2]],
-            self.state_input4: [state[3]],
+            # self.state_input2: [state[1]],
+            # self.state_input3: [state[2]],
+            # self.state_input4: [state[3]],
         })
         Q_value = Q_value[0]
 
@@ -291,36 +308,48 @@ class Q_Trader(object):
         self.time_step += 1
         one_hot_action = np.zeros(self.action_dim)
         one_hot_action[action] = 1
-        self.replay_buffer.append((state[0], state[1],state[2],state[3], one_hot_action, reward, state_[0], state_[1],state_[2],state_[3]))
+        self.replay_buffer.append((
+                state[0],
+                # state[1],
+                # state[2],
+                # state[3],
+                one_hot_action,
+                reward,
+                state_[0],
+                # state_[1],
+                # state_[2],
+                # state_[3]
+             )
+        )
         if len(self.replay_buffer) > self.replay_size:  # this is a rolling window
             self.replay_buffer.popleft()
         if len(self.replay_buffer) > 64:  # after 100 step ,pre  train
             self.training()
         else:
-            # print('PreBuffering... {}'.format(len(self.replay_buffer)), end='\r')
+            # print('PreBuffering... {}'.format(len(self.replay_buffer)))  # , end='\r')
             pass
 
     def training(self):
         # get random sample from replay buffer
         minibatch = random.sample(self.replay_buffer, self.batch_size)
         state_batch1 = [data[0] for data in minibatch]
-        state_batch2 = [data[1] for data in minibatch]
-        state_batch3 = [data[2] for data in minibatch]
-        state_batch4 = [data[3] for data in minibatch]
-        action_batch = [data[4] for data in minibatch]
-        reward_batch = [data[5] for data in minibatch]
-        next_state_batch1 = [data[6] for data in minibatch]
-        next_state_batch2 = [data[7] for data in minibatch]
-        next_state_batch3 = [data[8] for data in minibatch]
-        next_state_batch4 = [data[9] for data in minibatch]
+        # state_batch2 = [data[1] for data in minibatch]
+        # state_batch3 = [data[2] for data in minibatch]
+        # state_batch4 = [data[3] for data in minibatch]
+        action_batch = [data[1] for data in minibatch]
+        reward_batch = [data[2] for data in minibatch]
+        next_state_batch1 = [data[3] for data in minibatch]
+        # next_state_batch2 = [data[7] for data in minibatch]
+        # next_state_batch3 = [data[8] for data in minibatch]
+        # next_state_batch4 = [data[9] for data in minibatch]
 
         # calcuate Q
         Y_batch = []
         next_Q = self.Q_value.eval(feed_dict={
             self.state_input1: next_state_batch1,
-            self.state_input2: next_state_batch2,
-            self.state_input3: next_state_batch3,
-            self.state_input4: next_state_batch4
+            # self.state_input2: next_state_batch2,
+            # self.state_input3: next_state_batch3,
+            # self.state_input4: next_state_batch4
         })
 
         # Build a batch
@@ -334,9 +363,9 @@ class Q_Trader(object):
             self.y_input: Y_batch,
             self.action_input: action_batch,
             self.state_input1: state_batch1,
-            self.state_input2: state_batch2,
-            self.state_input3: state_batch3,
-            self.state_input4: state_batch4,
+            # self.state_input2: state_batch2,
+            # self.state_input3: state_batch3,
+            # self.state_input4: state_batch4,
         }
 
 
@@ -348,7 +377,29 @@ class Q_Trader(object):
                 feed_dict=FEED
         )
 
-    def get_reward(self, action, state):
+    def get_reward(self, action, position, df):
+        def unzero(df):
+            df = df.replace(0, 'NaN')
+            df = df.dropna(how='all', axis=0)
+            df = df.replace('NaN', 0)
+            df.len = len(df)
+            return df
+        change = unzero(df['Close'].pct_change(5).diff().cumsum().fillna(method='bfill'))
+        trend = change.values[position]
+        buy_hold = change.values[-1]
+        right_answer = 2  # do nothing... is usually the right answer
+        if (trend * 100) > 1:
+            right_answer = 0  # buy if going up
+        elif (trend * 100) < -1:
+            right_answer = 1  # sell if going down
+
+        if action == right_answer:
+            reward = 1
+        else:
+            reward = -1
+        return reward, buy_hold
+
+    def get_reward_old(self, action, state):
         trends = []
         for index, state_ in enumerate(state):
             x = state_.mean()

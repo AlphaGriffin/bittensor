@@ -20,10 +20,11 @@ __pycache__
 ### REMOVE ALL THE GENERATED SAVE DATA
 saved_notebooks/*
 html/*
-data/datasets/*
-data/models/*
+data/*
 notebooks/.ipynb_checkpoints/*
 .ipynb_checkpoints
+exchanges
+coins_info
 
 ### REMOVE ALL THE GENERATED SAVE DATA
 # *.csv

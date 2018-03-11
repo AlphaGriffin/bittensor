@@ -16,11 +16,6 @@ __email__ = "ruckusist@alphagriffin.com"
 __status__ = "Beta"
 
 
-# OAuth Access Token
-slack_decider_api = 'xoxp-312902367441-313352940675-313577069573-a66360411bba466255f4b139079707db'
-# Bot User OAuth Access Token
-slack_decider_secret = 'xoxb-312805382672-cYAB78AW7a3Lz2MOcz6sHS7R'
-
 class Slacker(object):
     """My interface to slack."""
 
